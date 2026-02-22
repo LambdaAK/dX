@@ -88,3 +88,31 @@ export function getTheoreticalSolution(
       return null
   }
 }
+
+/**
+ * Closed-form solution p(x,t) of the Fokker-Planck equation when available.
+ * Returns LaTeX string(s) to display, or null if no closed form.
+ */
+export function getDensityFormulaLatex(processId: string): { main: string; where?: string } | null {
+  switch (processId) {
+    case 'brownian':
+      return {
+        main:
+          'p(x, t) = \\frac{1}{\\sqrt{2\\pi t}} \\exp\\left(-\\frac{(x - X_0)^2}{2t}\\right) \\quad (t > 0)',
+      }
+    case 'ornstein-uhlenbeck':
+      return {
+        main:
+          'p(x, t) = \\frac{1}{\\sqrt{2\\pi \\sigma_t^2}} \\exp\\left(-\\frac{(x - \\mu_t)^2}{2\\sigma_t^2}\\right)',
+        where:
+          '\\mu_t = \\mu + (X_0 - \\mu)e^{-\\theta t}, \\quad \\sigma_t^2 = \\frac{\\sigma^2}{2\\theta}(1 - e^{-2\\theta t})',
+      }
+    case 'geometric-brownian':
+      return {
+        main:
+          'p(x, t) = \\frac{1}{x\\sigma\\sqrt{2\\pi t}} \\exp\\left(-\\frac{\\big(\\ln(x/X_0) - (\\mu - \\sigma^2/2)t\\big)^2}{2\\sigma^2 t}\\right) \\quad (x > 0,\\ t > 0)',
+      }
+    default:
+      return null
+  }
+}

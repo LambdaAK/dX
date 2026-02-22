@@ -6,6 +6,7 @@ import { SimConfigForm } from '@/components/SimConfigForm'
 import { PathsPlot } from '@/components/PathsPlot'
 import { StatsPlot } from '@/components/StatsPlot'
 import { SolutionsPanel } from '@/components/SolutionsPanel'
+import { DensityPanel } from '@/components/DensityPanel'
 import { eulerMaruyama } from '@/lib/sde'
 import { computeStats } from '@/lib/stats'
 import { compileCustomProcess } from '@/lib/customProcess'
@@ -53,7 +54,7 @@ export default function App() {
   })
   const [result, setResult] = useState<SimResult | null>(null)
   const [running, setRunning] = useState(false)
-  const [resultTab, setResultTab] = useState<'paths' | 'statistics' | 'solutions'>('paths')
+  const [resultTab, setResultTab] = useState<'paths' | 'statistics' | 'solutions' | 'density'>('paths')
   const chartContainerRef = useRef<HTMLDivElement>(null)
 
   const compiledCustom = useMemo(() => {
@@ -172,6 +173,13 @@ export default function App() {
             >
               Solutions
             </button>
+            <button
+              type="button"
+              className={resultTab === 'density' ? styles.resultTabActive : styles.resultTab}
+              onClick={() => setResultTab('density')}
+            >
+              Density p(x,t)
+            </button>
           </div>
           <div className={styles.exportRow}>
             <span className={styles.exportLabel}>Export:</span>
@@ -242,6 +250,24 @@ export default function App() {
                 stats={stats ?? null}
                 chartRef={chartContainerRef}
               />
+            </section>
+          )}
+          {resultTab === 'density' && (
+            <section className={styles.resultSection}>
+              <h2 className={styles.resultHeading}>Density p(x, t)</h2>
+              {currentProcess ? (
+                <DensityPanel
+                  process={currentProcess}
+                  params={params}
+                  x0={x0}
+                  config={config}
+                  chartRef={chartContainerRef}
+                />
+              ) : (
+                <div className={styles.emptyState}>
+                  Select a process to solve the Fokker-Planck equation for p(x, t).
+                </div>
+              )}
             </section>
           )}
         </div>
