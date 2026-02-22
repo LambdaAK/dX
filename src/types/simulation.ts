@@ -4,6 +4,8 @@ export type SimConfig = {
   dt: number
   M: number
   x0: number
+  /** Optional seed for reproducible paths. Leave empty for random. */
+  seed?: number
 }
 
 export type Path = { t: number[]; x: number[] }

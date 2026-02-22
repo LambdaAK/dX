@@ -10,6 +10,10 @@ type Props = {
 
 export function SimConfigForm({ config, onChange, onRun, running }: Props) {
   const set = (k: keyof SimConfig, v: number) => onChange({ ...config, [k]: v })
+  const setSeed = (raw: string) => {
+    const n = raw.trim() === '' ? undefined : parseInt(raw, 10)
+    onChange({ ...config, seed: n !== undefined && !Number.isNaN(n) ? n : undefined })
+  }
 
   return (
     <section className={styles.section}>
@@ -46,6 +50,18 @@ export function SimConfigForm({ config, onChange, onRun, running }: Props) {
             step={1}
             value={config.M}
             onChange={(e) => set('M', Number(e.target.value))}
+            className={styles.input}
+          />
+        </label>
+        <label className={styles.label}>
+          Seed <span className={styles.mono}>(optional)</span>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            placeholder="random"
+            value={config.seed ?? ''}
+            onChange={(e) => setSeed(e.target.value)}
             className={styles.input}
           />
         </label>

@@ -1,6 +1,6 @@
 import type { ProcessDef } from '@/types/process'
 import type { SimConfig, Path } from '@/types/simulation'
-import { normal } from './random'
+import { normal, createSeededRng } from './random'
 
 /**
  * Euler–Maruyama: one step.
@@ -11,23 +11,30 @@ function step(
   t: number,
   dt: number,
   process: ProcessDef,
-  params: Record<string, number>
+  params: Record<string, number>,
+  rand: () => number
 ): number {
   const f = process.drift(x, t, params)
   const g = process.diffusion(x, t, params)
-  const dW = normal() * Math.sqrt(dt)
+  const dW = normal(rand) * Math.sqrt(dt)
   return x + f * dt + g * dW
 }
 
 /**
  * Simulate M paths from t0 to T with step dt using the given process and params.
+ * If config.seed is set, paths are reproducible for the same seed and parameters.
  */
 export function eulerMaruyama(
   config: SimConfig,
   process: ProcessDef,
   params: Record<string, number>
 ): Path[] {
-  const { t0, T, dt, M, x0 } = config
+  const { t0, T, dt, M, x0, seed } = config
+  const rand =
+    seed != null && typeof seed === 'number' && !Number.isNaN(seed)
+      ? createSeededRng(Math.floor(seed))
+      : undefined
+
   const N = Math.max(1, Math.round((T - t0) / dt))
   const paths: Path[] = []
 
@@ -40,7 +47,7 @@ export function eulerMaruyama(
     let t = t0
     let x = x0
     for (let i = 0; i < N; i++) {
-      x = step(x, t, dt, process, params)
+      x = step(x, t, dt, process, params, rand ?? Math.random)
       t += dt
       tArr[i + 1] = t
       xArr[i + 1] = x
