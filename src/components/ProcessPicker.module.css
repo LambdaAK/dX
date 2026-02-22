@@ -80,6 +80,21 @@
   color: var(--text-muted);
 }
 
+.about {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-input);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+
+.aboutText {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 .custom {
   display: flex;
   flex-direction: column;

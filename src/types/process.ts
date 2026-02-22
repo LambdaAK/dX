@@ -12,6 +12,8 @@ export type ProcessDef = {
   id: string
   name: string
   description?: string
+  /** Brief description of what the process is used for and its significance. */
+  about?: string
   params: ParamDef[]
   drift: (x: number, t: number, p: Record<string, number>) => number
   diffusion: (x: number, t: number, p: Record<string, number>) => number

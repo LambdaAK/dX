@@ -9,12 +9,40 @@ import {
   ComposedChart,
   ReferenceLine,
 } from 'recharts'
+import type { TooltipProps } from 'recharts'
 import type { Stats as StatsType } from '@/types/simulation'
 import styles from './StatsPlot.module.css'
 
 type Props = {
   stats: StatsType | null
   x0: number
+}
+
+function StatsTooltip({
+  active,
+  payload,
+}: TooltipProps<number, string>) {
+  if (!active || !payload?.length || payload[0].payload == null) return null
+  const row = payload[0].payload as { t: number; mean: number; meanMinus2: number; bandHeight: number }
+  const meanPlus2 = row.meanMinus2 + row.bandHeight
+  const tooltipStyle = {
+    background: 'var(--bg-elevated)',
+    border: '1px solid var(--border)',
+    borderRadius: '8px',
+    padding: '0.5rem 0.75rem',
+    color: 'var(--text)',
+    fontSize: '0.875rem',
+  } as const
+  return (
+    <div style={tooltipStyle}>
+      <div style={{ marginBottom: '0.35rem', fontWeight: 600 }}>
+        t = {Number(row.t).toFixed(4)}
+      </div>
+      <div>Mean − 2σ: {Number(row.meanMinus2).toFixed(4)}</div>
+      <div>Mean: {Number(row.mean).toFixed(4)}</div>
+      <div>Mean + 2σ: {Number(meanPlus2).toFixed(4)}</div>
+    </div>
+  )
 }
 
 export function StatsPlot({ stats, x0: _x0 }: Props) {
@@ -53,23 +81,16 @@ export function StatsPlot({ stats, x0: _x0 }: Props) {
             domain={['auto', 'auto']}
             tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
             tickFormatter={(v) => Number(v).toFixed(2)}
+            label={{ value: 'Time (t)', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)', fontSize: 12 }}
           />
           <YAxis
             type="number"
             domain={['auto', 'auto']}
             tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
             tickFormatter={(v) => Number(v).toFixed(2)}
+            label={{ value: 'X(t)', angle: -90, position: 'insideLeft', fill: 'var(--text-muted)', fontSize: 12 }}
           />
-          <Tooltip
-            contentStyle={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-            }}
-            labelStyle={{ color: 'var(--text)' }}
-            formatter={(value: number) => [Number(value).toFixed(4), '']}
-            labelFormatter={(t) => `t = ${Number(t).toFixed(4)}`}
-          />
+          <Tooltip content={<StatsTooltip />} />
           <ReferenceLine x={stats.t[0]} stroke="var(--accent)" strokeDasharray="2 2" />
           <Area
             type="monotone"

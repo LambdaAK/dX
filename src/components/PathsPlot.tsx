@@ -14,6 +14,14 @@ import styles from './PathsPlot.module.css'
 const MAX_PATHS_TO_DRAW = 150
 const PATH_OPACITY = 0.35
 
+function subscript(n: number): string {
+  return n
+    .toString()
+    .split('')
+    .map((d) => String.fromCharCode(0x2080 + parseInt(d, 10)))
+    .join('')
+}
+
 type Props = {
   paths: Path[]
   x0: number
@@ -74,7 +82,11 @@ export function PathsPlot({ paths, x0: _x0 }: Props) {
               borderRadius: '8px',
             }}
             labelStyle={{ color: 'var(--text)' }}
-            formatter={(value: number) => [Number(value).toFixed(4), 'X(t)']}
+            formatter={(value: number, name: string) => {
+              const i = parseInt(String(name).replace('p', ''), 10)
+              const label = isNaN(i) ? 'X(t)' : `X${subscript(i + 1)}(t)`
+              return [Number(value).toFixed(4), label]
+            }}
             labelFormatter={(t) => `t = ${Number(t).toFixed(4)}`}
           />
           {sample.map((_, i) => (

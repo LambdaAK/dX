@@ -4,6 +4,9 @@ export const ornsteinUhlenbeck: ProcessDef = {
   id: 'ornstein-uhlenbeck',
   name: 'Ornstein–Uhlenbeck',
   description: 'dX = θ(μ − X)dt + σ dW — mean-reverting',
+  about:
+    'Used to model mean-reverting quantities such as interest rates, volatility, and commodity prices. ' +
+    'Has a closed-form solution and a Gaussian stationary distribution, so it is widely used in theory and calibration.',
   params: [
     { id: 'theta', name: 'θ (mean reversion)', default: 1, min: 0.01, max: 10, step: 0.01 },
     { id: 'mu', name: 'μ (long-term mean)', default: 0, min: -20, max: 20, step: 0.1 },

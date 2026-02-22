@@ -67,21 +67,28 @@ export function ProcessPicker({
       </div>
 
       {mode === 'built-in' && (
-        <div className={styles.cards}>
-          {builtInList.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={selectedId === p.id ? styles.cardActive : styles.card}
-              onClick={() => onSelectBuiltIn(p)}
-            >
-              <span className={styles.cardName}>{p.name}</span>
-              {p.description && (
-                <span className={styles.cardDesc}>{p.description}</span>
-              )}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className={styles.cards}>
+            {builtInList.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={selectedId === p.id ? styles.cardActive : styles.card}
+                onClick={() => onSelectBuiltIn(p)}
+              >
+                <span className={styles.cardName}>{p.name}</span>
+                {p.description && (
+                  <span className={styles.cardDesc}>{p.description}</span>
+                )}
+              </button>
+            ))}
+          </div>
+          {currentProcess?.about && (
+            <div className={styles.about}>
+              <p className={styles.aboutText}>{currentProcess.about}</p>
+            </div>
+          )}
+        </>
       )}
 
       {mode === 'custom' && (
