@@ -30,6 +30,7 @@ type Props = {
   config: SimConfig
   result: SimResult | null
   stats: Stats | null
+  chartRef?: React.RefObject<HTMLDivElement>
 }
 
 function SolutionsTooltip({
@@ -69,6 +70,7 @@ export function SolutionsPanel({
   config,
   result,
   stats,
+  chartRef,
 }: Props) {
   const tGrid =
     result?.paths[0]?.t ??
@@ -84,7 +86,7 @@ export function SolutionsPanel({
 
   if (!theory) {
     return (
-      <div className={styles.wrapper}>
+      <div className={styles.wrapper} ref={chartRef}>
         <p className={styles.noSolution}>
           No closed-form solution available for this process. Run a simulation to
           approximate the distribution numerically.
@@ -115,7 +117,7 @@ export function SolutionsPanel({
   })
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} ref={chartRef}>
       <div className={styles.formula}>
         <div className={styles.formulaTitle}>Analytical solution</div>
         <div

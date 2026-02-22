@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import type { ProcessDef, CustomProcessInput } from '@/types/process'
 import type { SimConfig, SimResult } from '@/types/simulation'
 import { ProcessPicker } from '@/components/ProcessPicker'
@@ -10,6 +10,13 @@ import { eulerMaruyama } from '@/lib/sde'
 import { computeStats } from '@/lib/stats'
 import { compileCustomProcess } from '@/lib/customProcess'
 import { getBuiltInProcesses } from '@/lib/processes'
+import {
+  pathsToCsv,
+  statsToCsv,
+  downloadBlob,
+  exportChartSvg,
+  exportChartPng,
+} from '@/lib/export'
 import styles from './App.module.css'
 
 const defaultCustomInput: CustomProcessInput = {
@@ -47,6 +54,7 @@ export default function App() {
   const [result, setResult] = useState<SimResult | null>(null)
   const [running, setRunning] = useState(false)
   const [resultTab, setResultTab] = useState<'paths' | 'statistics' | 'solutions'>('paths')
+  const chartContainerRef = useRef<HTMLDivElement>(null)
 
   const compiledCustom = useMemo(() => {
     if (mode !== 'custom') return null
@@ -85,6 +93,28 @@ export default function App() {
   }, [currentProcess, config, x0, params])
 
   const stats = result ? computeStats(result.paths) : null
+
+  const handleExportPathsCsv = useCallback(() => {
+    if (!result?.paths.length) return
+    const csv = pathsToCsv(result.paths)
+    downloadBlob(csv, 'paths.csv', 'text/csv;charset=utf-8')
+  }, [result])
+
+  const handleExportStatsCsv = useCallback(() => {
+    if (!stats) return
+    const csv = statsToCsv(stats)
+    downloadBlob(csv, 'statistics.csv', 'text/csv;charset=utf-8')
+  }, [stats])
+
+  const handleExportChartSvg = useCallback(() => {
+    const name = `${resultTab}-chart.svg`
+    exportChartSvg(chartContainerRef.current, name)
+  }, [resultTab])
+
+  const handleExportChartPng = useCallback(() => {
+    const name = `${resultTab}-chart.png`
+    exportChartPng(chartContainerRef.current, name)
+  }, [resultTab])
 
   return (
     <div className={styles.app}>
@@ -143,16 +173,61 @@ export default function App() {
               Solutions
             </button>
           </div>
+          <div className={styles.exportRow}>
+            <span className={styles.exportLabel}>Export:</span>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={handleExportPathsCsv}
+              disabled={!result?.paths.length}
+              title="Download paths as CSV (t, x1, x2, …)"
+            >
+              Paths CSV
+            </button>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={handleExportStatsCsv}
+              disabled={!stats}
+              title="Download statistics as CSV"
+            >
+              Stats CSV
+            </button>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={handleExportChartSvg}
+              title="Download current chart as SVG"
+            >
+              Chart SVG
+            </button>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={handleExportChartPng}
+              title="Download current chart as PNG"
+            >
+              Chart PNG
+            </button>
+          </div>
           {resultTab === 'paths' && (
             <section className={styles.resultSection}>
               <h2 className={styles.resultHeading}>Paths</h2>
-              <PathsPlot paths={result?.paths ?? []} x0={x0} />
+              <PathsPlot
+                paths={result?.paths ?? []}
+                x0={x0}
+                chartRef={chartContainerRef}
+              />
             </section>
           )}
           {resultTab === 'statistics' && (
             <section className={styles.resultSection}>
               <h2 className={styles.resultHeading}>Statistics</h2>
-              <StatsPlot stats={stats} x0={x0} />
+              <StatsPlot
+                stats={stats}
+                x0={x0}
+                chartRef={chartContainerRef}
+              />
             </section>
           )}
           {resultTab === 'solutions' && (
@@ -165,6 +240,7 @@ export default function App() {
                 config={config}
                 result={result}
                 stats={stats ?? null}
+                chartRef={chartContainerRef}
               />
             </section>
           )}

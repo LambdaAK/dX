@@ -25,12 +25,13 @@ function subscript(n: number): string {
 type Props = {
   paths: Path[]
   x0: number
+  chartRef?: React.RefObject<HTMLDivElement>
 }
 
-export function PathsPlot({ paths, x0: _x0 }: Props) {
+export function PathsPlot({ paths, x0: _x0, chartRef }: Props) {
   if (paths.length === 0) {
     return (
-      <div className={styles.empty}>
+      <div className={styles.empty} ref={chartRef}>
         Run a simulation to see paths.
       </div>
     )
@@ -51,7 +52,7 @@ export function PathsPlot({ paths, x0: _x0 }: Props) {
   })
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} ref={chartRef}>
       <p className={styles.hint}>
         Showing {sample.length} of {paths.length} paths
       </p>

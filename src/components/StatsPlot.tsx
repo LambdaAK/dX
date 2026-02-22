@@ -16,6 +16,7 @@ import styles from './StatsPlot.module.css'
 type Props = {
   stats: StatsType | null
   x0: number
+  chartRef?: React.RefObject<HTMLDivElement>
 }
 
 function StatsTooltip({
@@ -45,10 +46,10 @@ function StatsTooltip({
   )
 }
 
-export function StatsPlot({ stats, x0: _x0 }: Props) {
+export function StatsPlot({ stats, x0: _x0, chartRef }: Props) {
   if (!stats || stats.t.length === 0) {
     return (
-      <div className={styles.empty}>
+      <div className={styles.empty} ref={chartRef}>
         Run a simulation to see mean ± 2σ.
       </div>
     )
@@ -65,7 +66,7 @@ export function StatsPlot({ stats, x0: _x0 }: Props) {
   }))
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} ref={chartRef}>
       <p className={styles.hint}>
         Mean and mean ± 2σ across paths
       </p>
