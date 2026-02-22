@@ -12,6 +12,8 @@ export type ProcessDef = {
   id: string
   name: string
   description?: string
+  /** LaTeX for the SDE equation (e.g. "dX = \\mu X \\, dt + \\sigma X \\, dW"). When set, shown with KaTeX; description is used as tagline after " — ". */
+  equationLatex?: string
   /** Brief description of what the process is used for and its significance. */
   about?: string
   params: ParamDef[]

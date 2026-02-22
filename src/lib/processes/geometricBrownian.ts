@@ -3,7 +3,8 @@ import type { ProcessDef } from '@/types/process'
 export const geometricBrownian: ProcessDef = {
   id: 'geometric-brownian',
   name: 'Geometric Brownian motion',
-  description: 'dX = μX dt + σX dW — log-normal growth',
+  description: 'log-normal growth',
+  equationLatex: 'dX = \\mu X\\,dt + \\sigma X\\,dW',
   about:
     'Used in finance (e.g. Black–Scholes for stock prices), population dynamics, and any process that stays positive. ' +
     'Solution is log-normally distributed; avoids negative values and is the standard model for asset prices.',

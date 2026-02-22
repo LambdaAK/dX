@@ -1,6 +1,16 @@
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import type { ProcessDef, ParamDef, CustomProcessInput } from '@/types/process'
 import { getBuiltInProcesses } from '@/lib/processes'
 import styles from './ProcessPicker.module.css'
+
+function renderCardEquation(latex: string): string {
+  try {
+    return katex.renderToString(latex, { displayMode: false, throwOnError: false })
+  } catch {
+    return latex
+  }
+}
 
 type Mode = 'built-in' | 'custom'
 
@@ -77,8 +87,22 @@ export function ProcessPicker({
                 onClick={() => onSelectBuiltIn(p)}
               >
                 <span className={styles.cardName}>{p.name}</span>
-                {p.description && (
-                  <span className={styles.cardDesc}>{p.description}</span>
+                {(p.equationLatex || p.description) && (
+                  <span className={styles.cardDesc}>
+                    {p.equationLatex ? (
+                      <>
+                        <span
+                          className={styles.cardEquation}
+                          dangerouslySetInnerHTML={{
+                            __html: renderCardEquation(p.equationLatex),
+                          }}
+                        />
+                        {p.description && <> — {p.description}</>}
+                      </>
+                    ) : (
+                      p.description
+                    )}
+                  </span>
                 )}
               </button>
             ))}

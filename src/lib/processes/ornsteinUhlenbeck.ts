@@ -3,7 +3,8 @@ import type { ProcessDef } from '@/types/process'
 export const ornsteinUhlenbeck: ProcessDef = {
   id: 'ornstein-uhlenbeck',
   name: 'Ornstein–Uhlenbeck',
-  description: 'dX = θ(μ − X)dt + σ dW — mean-reverting',
+  description: 'mean-reverting',
+  equationLatex: 'dX = \\theta(\\mu - X)\\,dt + \\sigma\\,dW',
   about:
     'Used to model mean-reverting quantities such as interest rates, volatility, and commodity prices. ' +
     'Has a closed-form solution and a Gaussian stationary distribution, so it is widely used in theory and calibration.',

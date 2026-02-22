@@ -8,7 +8,8 @@ import type { ProcessDef } from '@/types/process'
 export const langevin: ProcessDef = {
   id: 'langevin',
   name: 'Langevin (overdamped)',
-  description: 'dX = −∇V(X) dt + √(2β⁻¹) dW — double-well potential',
+  description: 'double-well potential',
+  equationLatex: 'dX = -\\nabla V(X)\\,dt + \\sqrt{2\\beta^{-1}}\\,dW',
   about:
     'Used in statistical physics, MCMC (Langevin Monte Carlo), and diffusion models. ' +
     'Very important in modern ML: it underlies sampling algorithms and score-based generative models.',
