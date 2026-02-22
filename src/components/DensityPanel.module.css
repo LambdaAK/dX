@@ -14,13 +14,6 @@
   border-left: 3px solid var(--accent);
 }
 
-.definition {
-  font-size: 0.875rem;
-  color: var(--text);
-  margin: 0 0 0.5rem;
-  line-height: 1.45;
-}
-
 .equationIntro {
   display: block;
   font-size: 0.85rem;
@@ -55,52 +48,6 @@
   color: var(--text-muted);
   margin: 0.5rem 0 0.25rem;
   font-style: italic;
-}
-
-.heatmapSection {
-  margin-bottom: 1rem;
-}
-
-.heatmapLabel {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 0.35rem;
-}
-
-.heatmapWrap {
-  width: 100%;
-  aspect-ratio: 1.5;
-  max-height: 280px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.heatmap {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.heatmapAxes {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.axisLeft,
-.axisBottomLeft {
-  margin-right: auto;
-}
-
-.axisRight,
-.axisBottomRight {
-  margin-left: auto;
 }
 
 .sliceSection {

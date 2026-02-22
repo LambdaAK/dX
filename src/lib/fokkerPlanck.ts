@@ -42,22 +42,28 @@ export function solveFokkerPlanck(options: FokkerPlanckOptions): FokkerPlanckRes
   const x: number[] = new Array(nX)
   for (let i = 0; i < nX; i++) x[i] = xMin + i * dx
 
-  // Stability: dt <= dx² / (2 * max(g²)). Sample max g² at t0 over the grid.
+  // Stability: diffusion CFL dt <= dx²/(2 max g²); advection CFL dt <= dx/max|f|.
   let maxG2 = 1e-10
+  let maxAbsF = 1e-10
   for (let i = 0; i < nX; i++) {
     const g = process.diffusion(x[i], t0, params)
     const g2 = g * g
     if (g2 > maxG2) maxG2 = g2
+    const f = process.drift(x[i], t0, params)
+    const absF = Math.abs(f)
+    if (absF > maxAbsF) maxAbsF = absF
   }
-  const dtStable = (0.4 * dx * dx) / maxG2
+  const dtDiff = (0.35 * dx * dx) / maxG2
+  const dtAdv = maxAbsF > 1e-10 ? (0.5 * dx) / maxAbsF : Infinity
+  const dtStable = Math.min(dtDiff, dtAdv)
   const nT = Math.min(maxNt, Math.max(10, Math.ceil((T - t0) / dtStable)))
   const dt = (T - t0) / nT
 
   const t: number[] = new Array(nT + 1)
   for (let n = 0; n <= nT; n++) t[n] = t0 + n * dt
 
-  // Initial condition: narrow Gaussian centered at x0, normalized
-  const eps = Math.max(dx * 3, 1e-6 * (xMax - xMin))
+  // Initial condition: Gaussian centered at x0; wide enough to avoid grid-scale ringing
+  const eps = Math.max(dx * 6, 1e-6 * (xMax - xMin))
   let sum = 0
   const p0: number[] = new Array(nX)
   for (let i = 0; i < nX; i++) {
@@ -77,14 +83,18 @@ export function solveFokkerPlanck(options: FokkerPlanckOptions): FokkerPlanckRes
     const tn = t[n]
     for (let i = 1; i < nX - 1; i++) {
       const xi = x[i]
+      const fi = process.drift(xi, tn, params)
       const g = process.diffusion(xi, tn, params)
       const g2 = Math.max(g * g, g2Min)
+      const fp_i = fi * pn[i]
       const fp_prev = process.drift(x[i - 1], tn, params) * pn[i - 1]
       const fp_next = process.drift(x[i + 1], tn, params) * pn[i + 1]
+      // Upwind advection -∂/∂x[f·p] to avoid oscillations (central difference causes dispersion)
+      const advection =
+        fi > 0 ? -(fp_i - fp_prev) / dx : -(fp_next - fp_i) / dx
       const g2p_i = g2 * pn[i]
       const g2p_prev = Math.max(process.diffusion(x[i - 1], tn, params) ** 2, g2Min) * pn[i - 1]
       const g2p_next = Math.max(process.diffusion(x[i + 1], tn, params) ** 2, g2Min) * pn[i + 1]
-      const advection = -(fp_next - fp_prev) / (2 * dx)
       const diffusion = 0.5 * (g2p_next - 2 * g2p_i + g2p_prev) / (dx * dx)
       pNext[i] = pn[i] + dt * (advection + diffusion)
       if (pNext[i] < 0) pNext[i] = 0

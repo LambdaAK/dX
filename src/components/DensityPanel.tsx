@@ -27,9 +27,8 @@ function renderLatex(latex: string, displayMode: boolean): string {
   }
 }
 
-const NX = 120
-/** Max time steps; solver uses as many as needed for stability (can be 1000+ for large T). */
-const MAX_NT = 3000
+const NX = 160
+const MAX_NT = 2500
 
 type Props = {
   process: ProcessDef
@@ -37,15 +36,6 @@ type Props = {
   x0: number
   config: SimConfig
   chartRef?: React.RefObject<HTMLDivElement>
-}
-
-function heatColor(p: number, maxP: number): string {
-  if (maxP <= 0) return 'rgb(250, 249, 247)'
-  const t = Math.min(1, p / maxP)
-  const r = Math.round(250 - (250 - 234) * t)
-  const g = Math.round(249 - (249 - 88) * t)
-  const b = Math.round(247 - (247 - 12) * t)
-  return `rgb(${r},${g},${b})`
 }
 
 export function DensityPanel({ process, params, x0, config, chartRef }: Props) {
@@ -68,16 +58,6 @@ export function DensityPanel({ process, params, x0, config, chartRef }: Props) {
     })
   }, [process, params, x0, t0, T, domain.xMin, domain.xMax])
 
-  const maxP = useMemo(() => {
-    let m = 0
-    for (let n = 0; n < result.p.length; n++) {
-      for (let i = 0; i < result.p[n].length; i++) {
-        if (result.p[n][i] > m) m = result.p[n][i]
-      }
-    }
-    return m
-  }, [result.p])
-
   const [timeIndex, setTimeIndex] = useState(0)
   useEffect(() => {
     setTimeIndex(Math.floor(result.t.length / 2))
@@ -86,9 +66,23 @@ export function DensityPanel({ process, params, x0, config, chartRef }: Props) {
   const tSlice = result.t[timeIndexClamped]
   const pSlice = result.p[timeIndexClamped]
 
+  const pSmoothed = useMemo(() => {
+    const n = pSlice.length
+    const out = new Array<number>(n)
+    const half = 2
+    for (let i = 0; i < n; i++) {
+      const lo = Math.max(0, i - half)
+      const hi = Math.min(n - 1, i + half)
+      let sum = 0
+      for (let j = lo; j <= hi; j++) sum += pSlice[j]
+      out[i] = sum / (hi - lo + 1)
+    }
+    return out
+  }, [pSlice])
+
   const sliceData = useMemo(
-    () => result.x.map((xi, i) => ({ x: xi, p: pSlice[i] })),
-    [result.x, pSlice]
+    () => result.x.map((xi, i) => ({ x: xi, p: pSmoothed[i] })),
+    [result.x, pSmoothed]
   )
 
   const densityFormula = useMemo(() => getDensityFormulaLatex(process.id), [process.id])
@@ -190,35 +184,6 @@ export function DensityPanel({ process, params, x0, config, chartRef }: Props) {
             />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      <div className={styles.heatmapSection}>
-        <div className={styles.heatmapLabel}>Heatmap: x vs t</div>
-        <div className={styles.heatmapWrap}>
-          <svg
-            className={styles.heatmap}
-            viewBox={`0 0 ${result.x.length} ${result.t.length}`}
-            preserveAspectRatio="none"
-          >
-            {result.t.map((_, n) =>
-              result.x.map((_, i) => (
-                <rect
-                  key={`${n}-${i}`}
-                  x={i}
-                  y={result.t.length - 1 - n}
-                  width={1}
-                  height={1}
-                  fill={heatColor(result.p[n][i], maxP)}
-                />
-              ))
-            )}
-          </svg>
-        </div>
-        <div className={styles.heatmapAxes}>
-          <span className={styles.axisLeft}>t = {t0.toFixed(1)}</span>
-          <span className={styles.axisRight}>t = {T.toFixed(1)}</span>
-          <span className={styles.axisBottomLeft}>x = {domain.xMin.toFixed(1)}</span>
-          <span className={styles.axisBottomRight}>x = {domain.xMax.toFixed(1)}</span>
-        </div>
       </div>
     </div>
   )
