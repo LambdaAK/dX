@@ -32,15 +32,23 @@
 }
 
 .formulaText {
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   color: var(--text);
-  font-family: var(--font-mono);
+  overflow-x: auto;
+}
+
+.formulaText .katex {
+  font-size: 1em;
 }
 
 .stationary {
-  margin-top: 0.35rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+
+.stationary .katex {
+  font-size: 1em;
 }
 
 .hint {

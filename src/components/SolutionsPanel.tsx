@@ -1,3 +1,5 @@
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import {
   Line,
   XAxis,
@@ -12,6 +14,14 @@ import type { TooltipProps } from 'recharts'
 import type { SimConfig, SimResult, Stats } from '@/types/simulation'
 import { getTheoreticalSolution } from '@/lib/solutions'
 import styles from './SolutionsPanel.module.css'
+
+function renderLatex(latex: string, displayMode: boolean): string {
+  try {
+    return katex.renderToString(latex, { displayMode, throwOnError: false })
+  } catch {
+    return latex
+  }
+}
 
 type Props = {
   processId: string
@@ -108,11 +118,17 @@ export function SolutionsPanel({
     <div className={styles.wrapper}>
       <div className={styles.formula}>
         <div className={styles.formulaTitle}>Analytical solution</div>
-        <div className={styles.formulaText}>{theory.formula}</div>
-        {theory.stationary && (
-          <div className={styles.stationary}>
-            As t → ∞: X_∞ ∼ {theory.stationary}
-          </div>
+        <div
+          className={styles.formulaText}
+          dangerouslySetInnerHTML={{ __html: renderLatex(theory.formulaLatex, true) }}
+        />
+        {theory.stationaryLatex && (
+          <div
+            className={styles.stationary}
+            dangerouslySetInnerHTML={{
+              __html: renderLatex(theory.stationaryLatex, true),
+            }}
+          />
         )}
       </div>
       <p className={styles.hint}>

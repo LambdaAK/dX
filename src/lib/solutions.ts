@@ -7,10 +7,10 @@ export type TheoreticalSolution = {
   t: number[]
   mean: number[]
   std: number[]
-  /** Short formula description for the process. */
-  formula: string
-  /** Stationary distribution if applicable (e.g. "N(μ, σ²/(2θ))"). */
-  stationary?: string
+  /** LaTeX for the main formula (display mode). */
+  formulaLatex: string
+  /** LaTeX for stationary distribution, if applicable. */
+  stationaryLatex?: string
 }
 
 function ouSolution(
@@ -27,8 +27,10 @@ function ouSolution(
     t,
     mean,
     std,
-    formula: 'E[X_t] = μ + (X₀ − μ)e^{-θt},  Var(X_t) = σ²/(2θ)(1 − e^{-2θt})',
-    stationary: `N(μ, σ²/(2θ))`,
+    formulaLatex:
+      'E[X_t] = \\mu + (X_0 - \\mu)e^{-\\theta t}, \\quad \\mathrm{Var}(X_t) = \\frac{\\sigma^2}{2\\theta}(1 - e^{-2\\theta t})',
+    stationaryLatex:
+      '\\text{As } t \\to \\infty: \\quad X_\\infty \\sim N\\left(\\mu, \\frac{\\sigma^2}{2\\theta}\\right)',
   }
 }
 
@@ -39,8 +41,8 @@ function brownianSolution(t: number[], x0: number): TheoreticalSolution {
     t,
     mean,
     std,
-    formula: 'E[X_t] = X₀,  Var(X_t) = t',
-    stationary: undefined,
+    formulaLatex: 'E[X_t] = X_0, \\quad \\mathrm{Var}(X_t) = t',
+    stationaryLatex: undefined,
   }
 }
 
@@ -59,8 +61,9 @@ function gbmSolution(
     t,
     mean,
     std,
-    formula: 'E[X_t] = X₀ e^{μt},  Var(X_t) = X₀² e^{2μt}(e^{σ²t} − 1)',
-    stationary: undefined,
+    formulaLatex:
+      'E[X_t] = X_0 e^{\\mu t}, \\quad \\mathrm{Var}(X_t) = X_0^2 e^{2\\mu t}(e^{\\sigma^2 t} - 1)',
+    stationaryLatex: undefined,
   }
 }
 
