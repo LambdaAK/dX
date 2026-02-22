@@ -5,6 +5,7 @@ import { ProcessPicker } from '@/components/ProcessPicker'
 import { SimConfigForm } from '@/components/SimConfigForm'
 import { PathsPlot } from '@/components/PathsPlot'
 import { StatsPlot } from '@/components/StatsPlot'
+import { SolutionsPanel } from '@/components/SolutionsPanel'
 import { eulerMaruyama } from '@/lib/sde'
 import { computeStats } from '@/lib/stats'
 import { compileCustomProcess } from '@/lib/customProcess'
@@ -45,6 +46,7 @@ export default function App() {
   })
   const [result, setResult] = useState<SimResult | null>(null)
   const [running, setRunning] = useState(false)
+  const [resultTab, setResultTab] = useState<'paths' | 'statistics' | 'solutions'>('paths')
 
   const compiledCustom = useMemo(() => {
     if (mode !== 'custom') return null
@@ -118,14 +120,54 @@ export default function App() {
         </div>
 
         <div className={styles.results}>
-          <section className={styles.resultSection}>
-            <h2 className={styles.resultHeading}>Paths</h2>
-            <PathsPlot paths={result?.paths ?? []} x0={x0} />
-          </section>
-          <section className={styles.resultSection}>
-            <h2 className={styles.resultHeading}>Statistics</h2>
-            <StatsPlot stats={stats} x0={x0} />
-          </section>
+          <div className={styles.resultTabs}>
+            <button
+              type="button"
+              className={resultTab === 'paths' ? styles.resultTabActive : styles.resultTab}
+              onClick={() => setResultTab('paths')}
+            >
+              Paths
+            </button>
+            <button
+              type="button"
+              className={resultTab === 'statistics' ? styles.resultTabActive : styles.resultTab}
+              onClick={() => setResultTab('statistics')}
+            >
+              Statistics
+            </button>
+            <button
+              type="button"
+              className={resultTab === 'solutions' ? styles.resultTabActive : styles.resultTab}
+              onClick={() => setResultTab('solutions')}
+            >
+              Solutions
+            </button>
+          </div>
+          {resultTab === 'paths' && (
+            <section className={styles.resultSection}>
+              <h2 className={styles.resultHeading}>Paths</h2>
+              <PathsPlot paths={result?.paths ?? []} x0={x0} />
+            </section>
+          )}
+          {resultTab === 'statistics' && (
+            <section className={styles.resultSection}>
+              <h2 className={styles.resultHeading}>Statistics</h2>
+              <StatsPlot stats={stats} x0={x0} />
+            </section>
+          )}
+          {resultTab === 'solutions' && (
+            <section className={styles.resultSection}>
+              <h2 className={styles.resultHeading}>Solutions</h2>
+              <SolutionsPanel
+                processId={currentProcess?.id ?? ''}
+                params={params}
+                x0={x0}
+                config={config}
+                result={result}
+                stats={stats ?? null}
+              />
+            </section>
+          )}
         </div>
       </main>
 

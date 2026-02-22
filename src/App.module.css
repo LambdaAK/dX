@@ -45,15 +45,37 @@
 }
 
 .results {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-@media (max-width: 900px) {
-  .results {
-    grid-template-columns: 1fr;
-  }
+.resultTabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.resultTab,
+.resultTabActive {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.resultTab:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.resultTabActive {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
 }
 
 .resultSection {
