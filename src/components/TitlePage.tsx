@@ -1,7 +1,7 @@
 import styles from './TitlePage.module.css'
 
 type Props = {
-  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'pendulum' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn') => void
+  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'pendulum' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn' | 'decision-tree') => void
 }
 
 export function TitlePage({ onSelect }: Props) {
@@ -138,6 +138,16 @@ export function TitlePage({ onSelect }: Props) {
               <span className={styles.cardTitle}>K-Nearest Neighbors</span>
               <span className={styles.cardDesc}>
                 Classify points by majority vote among k nearest neighbors. Try blobs, XOR, and circles
+              </span>
+            </button>
+            <button
+              type="button"
+              className={styles.card}
+              onClick={() => onSelect('decision-tree')}
+            >
+              <span className={styles.cardTitle}>Decision tree &amp; Random forest</span>
+              <span className={styles.cardDesc}>
+                CART trees (Gini split) and forest of bootstrap trees. Compare decision boundaries and tree structure
               </span>
             </button>
           </div>

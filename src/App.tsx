@@ -13,9 +13,10 @@ import { KMeansSection } from '@/components/KMeansSection'
 import { DBSCANSection } from '@/components/DBSCANSection'
 import { PendulumSection } from '@/components/PendulumSection'
 import { KNNSection } from '@/components/KNNSection'
+import { DecisionTreeSection } from '@/components/DecisionTreeSection'
 import styles from './App.module.css'
 
-export type AppPage = 'home' | 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'pendulum' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn'
+export type AppPage = 'home' | 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'pendulum' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn' | 'decision-tree'
 
 export default function App() {
   const [page, setPage] = useState<AppPage>('home')
@@ -131,6 +132,13 @@ export default function App() {
               >
                 KNN
               </button>
+              <button
+                type="button"
+                className={page === 'decision-tree' ? styles.navBtnActive : styles.navBtn}
+                onClick={() => setPage('decision-tree')}
+              >
+                Decision tree
+              </button>
             </nav>
           </header>
           <main className={styles.main}>
@@ -147,6 +155,7 @@ export default function App() {
             {page === 'kmeans' && <KMeansSection />}
             {page === 'dbscan' && <DBSCANSection />}
             {page === 'knn' && <KNNSection />}
+            {page === 'decision-tree' && <DecisionTreeSection />}
           </main>
         </>
       )}
