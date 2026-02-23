@@ -1,6 +1,6 @@
-# Stochastic Processes Simulator
+# dX · Math & ML Lab
 
-A browser-based app to simulate stochastic differential equations (SDEs): choose built-in or custom processes, run many paths, and view trajectories, statistics, and analytical solutions.
+A browser-based lab for **math** (stochastic processes, probability, reinforcement learning) and **ML** (regression, clustering, classification). Simulate SDEs, Markov chains, bandits, LLN/CLT, value iteration and Q-learning; fit linear and logistic regression; run K-means, DBSCAN, and KNN—all in the browser with no backend.
 
 ## Run
 
