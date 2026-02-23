@@ -11,10 +11,11 @@ import { LinearRegressionSection } from '@/components/LinearRegressionSection'
 import { LogisticRegressionSection } from '@/components/LogisticRegressionSection'
 import { KMeansSection } from '@/components/KMeansSection'
 import { DBSCANSection } from '@/components/DBSCANSection'
+import { PendulumSection } from '@/components/PendulumSection'
 import { KNNSection } from '@/components/KNNSection'
 import styles from './App.module.css'
 
-export type AppPage = 'home' | 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn'
+export type AppPage = 'home' | 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'pendulum' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn'
 
 export default function App() {
   const [page, setPage] = useState<AppPage>('home')
@@ -90,6 +91,13 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className={page === 'pendulum' ? styles.navBtnActive : styles.navBtn}
+                onClick={() => setPage('pendulum')}
+              >
+                Pendulum
+              </button>
+              <button
+                type="button"
                 className={page === 'linear-regression' ? styles.navBtnActive : styles.navBtn}
                 onClick={() => setPage('linear-regression')}
               >
@@ -133,6 +141,7 @@ export default function App() {
             {page === 'lln' && <LLNSection />}
             {page === 'clt' && <CLTSection />}
             {page === 'rl' && <RLSection />}
+            {page === 'pendulum' && <PendulumSection />}
             {page === 'linear-regression' && <LinearRegressionSection />}
             {page === 'logistic-regression' && <LogisticRegressionSection />}
             {page === 'kmeans' && <KMeansSection />}

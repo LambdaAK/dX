@@ -1,7 +1,7 @@
 import styles from './TitlePage.module.css'
 
 type Props = {
-  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn') => void
+  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl' | 'pendulum' | 'linear-regression' | 'logistic-regression' | 'kmeans' | 'dbscan' | 'knn') => void
 }
 
 export function TitlePage({ onSelect }: Props) {
@@ -83,6 +83,21 @@ export function TitlePage({ onSelect }: Props) {
               <span className={styles.cardTitle}>Reinforcement Learning</span>
               <span className={styles.cardDesc}>
                 MDPs and grid worlds: Value Iteration, Q-Learning, SARSA. Visualize policies and learning curves
+              </span>
+            </button>
+          </div>
+        </section>
+        <section className={styles.category}>
+          <h2 className={styles.categoryTitle}>Physics</h2>
+          <div className={styles.categoryCards}>
+            <button
+              type="button"
+              className={styles.card}
+              onClick={() => onSelect('pendulum')}
+            >
+              <span className={styles.cardTitle}>Pendulum</span>
+              <span className={styles.cardDesc}>
+                Simple and damped pendulum: θ″ = −(g/L) sin θ − b θ′. Phase portrait, time series, and animation
               </span>
             </button>
           </div>
