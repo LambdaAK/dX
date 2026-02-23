@@ -86,7 +86,6 @@ export function buildHistogramData(
   const { means, theoreticalMean, theoreticalVariance } = result
   const { sampleSize, numTrials } = config
   const meanVariance = theoreticalVariance / sampleSize
-  const meanStd = Math.sqrt(meanVariance)
   const min = Math.min(...means)
   const max = Math.max(...means)
   const range = max - min || 1

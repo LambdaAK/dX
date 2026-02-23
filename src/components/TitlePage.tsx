@@ -1,7 +1,7 @@
 import styles from './TitlePage.module.css'
 
 type Props = {
-  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt') => void
+  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt' | 'rl') => void
 }
 
 export function TitlePage({ onSelect }: Props) {
@@ -70,6 +70,16 @@ export function TitlePage({ onSelect }: Props) {
           <span className={styles.cardTitle}>Central Limit Theorem</span>
           <span className={styles.cardDesc}>
             Histogram of sample means: see the distribution become normal as n grows
+          </span>
+        </button>
+        <button
+          type="button"
+          className={styles.card}
+          onClick={() => onSelect('rl')}
+        >
+          <span className={styles.cardTitle}>Reinforcement Learning</span>
+          <span className={styles.cardDesc}>
+            MDPs and grid worlds: Value Iteration, Q-Learning, SARSA. Visualize policies and learning curves
           </span>
         </button>
       </div>
