@@ -147,6 +147,22 @@ export function parseMarkovDSL(text: string): MarkovParseResult {
     return { ok: false, error: 'Missing "Transitions:" section.' }
   }
 
+  // From each state, outgoing probabilities must sum to 0 (absorbing) or 1. Missing edges = 0.
+  const outSum = new Map<string, number>()
+  for (const s of states) outSum.set(s, 0)
+  for (const t of transitions) {
+    outSum.set(t.from, (outSum.get(t.from) ?? 0) + t.p)
+  }
+  for (const s of states) {
+    const sum = outSum.get(s) ?? 0
+    if (sum > 0 && Math.abs(sum - 1) > 1e-6) {
+      return {
+        ok: false,
+        error: `From state "${s}", transition probabilities sum to ${sum.toFixed(4)} (must be 0 or 1). Missing edges are treated as 0.`,
+      }
+    }
+  }
+
   return { ok: true, chain: { states, initialDistribution, transitions } }
 }
 
