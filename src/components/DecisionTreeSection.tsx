@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import {
@@ -21,12 +21,7 @@ import {
   type TrainingPoint,
   type TreeNode,
 } from '@/lib/decisionTree'
-import {
-  buildRandomForest,
-  predictForest,
-  randomForestGrid,
-  type RandomForest,
-} from '@/lib/randomForest'
+import { TreeVisualization } from '@/components/TreeVisualization'
 import { generatePresetDataset } from '@/lib/knn'
 import { createSeededRng } from '@/lib/random'
 import type { KNNDatasetPreset } from '@/types/knn'
@@ -40,114 +35,157 @@ function renderLatex(latex: string, displayMode = false): string {
   }
 }
 
-type ModelMode = 'decision-tree' | 'random-forest'
-
 const PRESETS: { id: KNNDatasetPreset; label: string }[] = [
   { id: 'blobs', label: 'Two blobs' },
   { id: 'xor', label: 'XOR' },
   { id: 'circles', label: 'Circles' },
+  { id: 'moons', label: 'Moons' },
+  { id: 'three-blobs', label: 'Three blobs' },
+  { id: 'stripes', label: 'Stripes' },
+  { id: 'nested', label: 'Nested rectangle' },
 ]
 
-const LABEL_COLORS: Record<string, string> = {
-  A: 'var(--accent)',
-  B: '#0ea5e9',
-  '0': '#22c55e',
-  '1': '#a855f7',
-}
-
-function getColor(label: string): string {
-  return LABEL_COLORS[label] ?? '#94a3b8'
-}
+const PALETTE = [
+  'var(--accent)',
+  '#0ea5e9',
+  '#22c55e',
+  '#a855f7',
+  '#eab308',
+  '#ef4444',
+  '#06b6d4',
+  '#f97316',
+]
 
 const N_PER_CLASS = 50
 const DOMAIN = { xMin: -4, xMax: 4, yMin: -4, yMax: 4 }
 
+const DEFAULT_LABELS = 'A, B'
+const DEFAULT_DATA = '-1, -1, A\n1, 1, A\n-1, 1, B\n1, -1, B'
+
+function parseDataPoints(text: string): TrainingPoint[] {
+  const lines = text.trim().split('\n').map((l) => l.trim()).filter(Boolean)
+  const out: TrainingPoint[] = []
+  for (const line of lines) {
+    const parts = line.split(/[\s,;]+/).map((s) => s.trim())
+    if (parts.length >= 3) {
+      const x = parseFloat(parts[0])
+      const y = parseFloat(parts[1])
+      const label = parts[2]
+      if (Number.isFinite(x) && Number.isFinite(y) && label) {
+        out.push({ x, y, label })
+      }
+    }
+  }
+  return out
+}
+
 export function DecisionTreeSection() {
-  const [mode, setMode] = useState<ModelMode>('decision-tree')
   const [preset, setPreset] = useState<KNNDatasetPreset>('blobs')
-  const [training, setTraining] = useState<TrainingPoint[]>(() => [])
+  const [labelsInput, setLabelsInput] = useState(DEFAULT_LABELS)
+  const [dataInput, setDataInput] = useState(DEFAULT_DATA)
+  const [training, setTraining] = useState<TrainingPoint[]>(() => parseDataPoints(DEFAULT_DATA))
+  const [addX, setAddX] = useState('')
+  const [addY, setAddY] = useState('')
+  const [addLabel, setAddLabel] = useState('A')
   const [maxDepth, setMaxDepth] = useState(5)
-  const [nTrees, setNTrees] = useState(50)
   const [showDecisionBoundary, setShowDecisionBoundary] = useState(true)
   const [gridRes, setGridRes] = useState(32)
   const [seed, setSeed] = useState('')
+  const [treeView, setTreeView] = useState<'visual' | 'text'>('visual')
   const [query, setQuery] = useState<{ x: number; y: number } | null>(null)
   const [predictedLabel, setPredictedLabel] = useState<string | null>(null)
+  const [loadMessage, setLoadMessage] = useState<string | null>(null)
+
+  const labelsList = useMemo(
+    () => labelsInput.split(',').map((s) => s.trim()).filter(Boolean),
+    [labelsInput]
+  )
+  useEffect(() => {
+    if (labelsList.length > 0 && !labelsList.includes(addLabel)) {
+      setAddLabel(labelsList[0])
+    }
+  }, [labelsInput])
+
+  useEffect(() => {
+    setLoadMessage(null)
+  }, [dataInput])
+
+  const labelOrder = useMemo(
+    () => (labelsList.length > 0 ? labelsList : [...new Set(training.map((p) => p.label))]),
+    [labelsList, training]
+  )
+  const getColor = useCallback(
+    (label: string) => PALETTE[labelOrder.indexOf(label) % PALETTE.length] ?? '#94a3b8',
+    [labelOrder]
+  )
 
   const generateData = useCallback(() => {
     const rand =
       seed.trim() !== '' && !Number.isNaN(Number(seed))
         ? createSeededRng(Number(seed))
         : Math.random
-    setTraining(generatePresetDataset(preset, N_PER_CLASS, rand))
+    const points = generatePresetDataset(preset, N_PER_CLASS, rand)
+    setTraining(points)
+    setDataInput(points.map((p) => `${p.x}, ${p.y}, ${p.label}`).join('\n'))
     setQuery(null)
     setPredictedLabel(null)
+    setLabelsInput(
+      preset === 'xor' ? '0, 1' : preset === 'three-blobs' ? 'A, B, C' : 'A, B'
+    )
   }, [preset, seed])
 
   const handlePresetChange = (p: KNNDatasetPreset) => {
     setPreset(p)
     setTraining([])
+    setDataInput('')
     setQuery(null)
     setPredictedLabel(null)
+    setLabelsInput(
+      p === 'xor' ? '0, 1' : p === 'three-blobs' ? 'A, B, C' : 'A, B'
+    )
   }
 
-  const tree = useMemo((): TreeNode | null => {
-    if (training.length === 0 || mode !== 'decision-tree') return null
-    return buildDecisionTree(training, { maxDepth })
-  }, [training, mode, maxDepth])
+  const handleLoadData = useCallback(() => {
+    const points = parseDataPoints(dataInput)
+    setTraining(points)
+    setQuery(null)
+    setPredictedLabel(null)
+    setLoadMessage(points.length > 0 ? `Loaded ${points.length} points.` : 'No valid rows. Use one point per line: x, y, label (e.g. 1, 2, A).')
+  }, [dataInput])
 
-  const forest = useMemo((): RandomForest => {
-    if (training.length === 0 || mode !== 'random-forest') return []
-    const rand =
-      seed.trim() !== '' && !Number.isNaN(Number(seed))
-        ? createSeededRng(Number(seed))
-        : Math.random
-    return buildRandomForest(
-      training,
-      { nTrees, maxDepth },
-      rand
-    )
-  }, [training, mode, nTrees, maxDepth, seed])
+  const handleAddPoint = useCallback(() => {
+    const x = Number(addX)
+    const y = Number(addY)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    setTraining((prev) => [...prev, { x, y, label: addLabel }])
+    setAddX('')
+    setAddY('')
+  }, [addX, addY, addLabel])
+
+  const tree = useMemo((): TreeNode | null => {
+    if (training.length === 0) return null
+    return buildDecisionTree(training, { maxDepth })
+  }, [training, maxDepth])
 
   const decisionGridData = useMemo(() => {
-    if (!showDecisionBoundary || training.length === 0) return []
-    if (mode === 'decision-tree' && tree) {
-      return decisionTreeGrid(
-        tree,
-        DOMAIN.xMin,
-        DOMAIN.xMax,
-        DOMAIN.yMin,
-        DOMAIN.yMax,
-        gridRes,
-        gridRes
-      )
-    }
-    if (mode === 'random-forest' && forest.length > 0) {
-      return randomForestGrid(
-        forest,
-        DOMAIN.xMin,
-        DOMAIN.xMax,
-        DOMAIN.yMin,
-        DOMAIN.yMax,
-        gridRes,
-        gridRes
-      )
-    }
-    return []
-  }, [mode, tree, forest, showDecisionBoundary, gridRes, training.length])
+    if (!showDecisionBoundary || training.length === 0 || !tree) return []
+    return decisionTreeGrid(
+      tree,
+      DOMAIN.xMin,
+      DOMAIN.xMax,
+      DOMAIN.yMin,
+      DOMAIN.yMax,
+      gridRes,
+      gridRes
+    )
+  }, [tree, showDecisionBoundary, gridRes, training.length])
 
   const handlePredict = useCallback(() => {
-    if (training.length === 0) return
+    if (training.length === 0 || !tree) return
     const q = query ?? { x: 0, y: 0 }
-    const label =
-      mode === 'decision-tree' && tree
-        ? predictTree(tree, q)
-        : forest.length > 0
-          ? predictForest(forest, q)
-          : ''
     setQuery(q)
-    setPredictedLabel(label)
-  }, [training, mode, tree, forest, query])
+    setPredictedLabel(predictTree(tree, q))
+  }, [training, tree, query])
 
   const scatterByLabel = useMemo(() => {
     const byLabel: Record<string, { x: number; y: number; label: string }[]> = {}
@@ -164,27 +202,13 @@ export function DecisionTreeSection() {
         <p className={styles.introText}>
           <strong>Decision trees</strong> split the feature space on one feature at a time (here: x or y), choosing the threshold that minimizes{' '}
           <span dangerouslySetInnerHTML={{ __html: renderLatex('\\mathrm{Gini} = 1 - \\sum_k p_k^2') }} />.
-          <strong> Random forest</strong> trains many trees on bootstrap samples and predicts by majority vote, reducing overfitting and smoothing decision boundaries.
-        </p>
-        <p className={styles.introText}>
-          Choose a preset, generate data, then compare a single tree (with optional tree view) to a random forest. Toggle the decision boundary to see how the model partitions the plane.
+          Add or paste data, then view the fitted tree and decision boundary. Bagging and boosting will be added separately.
         </p>
       </div>
 
       <div className={styles.editorBlock}>
         <h3 className={styles.optionsTitle}>Model</h3>
         <div className={styles.theoreticalForm}>
-          <label className={styles.fieldLabel}>
-            <span>Mode</span>
-            <select
-              className={styles.input}
-              value={mode}
-              onChange={(e) => setMode(e.target.value as ModelMode)}
-            >
-              <option value="decision-tree">Decision tree</option>
-              <option value="random-forest">Random forest</option>
-            </select>
-          </label>
           <label className={styles.fieldLabel}>
             <span>Max depth</span>
             <input
@@ -196,24 +220,110 @@ export function DecisionTreeSection() {
               className={styles.input}
             />
           </label>
-          {mode === 'random-forest' && (
-            <label className={styles.fieldLabel}>
-              <span>Number of trees</span>
-              <input
-                type="number"
-                min={5}
-                max={200}
-                value={nTrees}
-                onChange={(e) => setNTrees(Math.max(5, Math.min(200, Number(e.target.value) || 50)))}
-                className={styles.input}
-              />
-            </label>
-          )}
         </div>
       </div>
 
       <div className={styles.editorBlock}>
-        <h3 className={styles.optionsTitle}>Dataset</h3>
+        <h3 className={styles.optionsTitle}>Labels</h3>
+        <p className={styles.hint}>
+          Comma-separated class labels, e.g. <code>A, B, C</code> or <code>+1, -1</code>. Used for adding points and for colors.
+        </p>
+        <input
+          type="text"
+          className={styles.input}
+          value={labelsInput}
+          onChange={(e) => setLabelsInput(e.target.value)}
+          placeholder="A, B, C"
+        />
+      </div>
+
+      <div className={styles.editorBlock}>
+        <h3 className={styles.optionsTitle}>Data (x, y, label)</h3>
+        <p className={styles.hint}>
+          One point per line: <code>x, y, label</code>. Paste a block or add points below.
+        </p>
+        <textarea
+          className={styles.textarea}
+          value={dataInput}
+          onChange={(e) => setDataInput(e.target.value)}
+          rows={6}
+          spellCheck={false}
+          placeholder="-1, -1, A&#10;1, 1, B"
+        />
+        <button type="button" className={styles.runBtn} onClick={handleLoadData}>
+          Load data
+        </button>
+        {loadMessage !== null && (
+          <p className={styles.hint} style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+            {loadMessage}
+          </p>
+        )}
+      </div>
+
+      <div className={styles.editorBlock}>
+        <h3 className={styles.optionsTitle}>Add point</h3>
+        <div className={styles.theoreticalForm}>
+          <label className={styles.fieldLabel}>
+            <span>x</span>
+            <input
+              type="number"
+              step="any"
+              className={styles.input}
+              value={addX}
+              onChange={(e) => setAddX(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+          <label className={styles.fieldLabel}>
+            <span>y</span>
+            <input
+              type="number"
+              step="any"
+              className={styles.input}
+              value={addY}
+              onChange={(e) => setAddY(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+          {labelsList.length > 0 ? (
+            <label className={styles.fieldLabel}>
+              <span>Label</span>
+              <select
+                className={styles.input}
+                value={addLabel}
+                onChange={(e) => setAddLabel(e.target.value)}
+              >
+                {labelsList.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className={styles.fieldLabel}>
+              <span>Label</span>
+              <input
+                type="text"
+                className={styles.input}
+                value={addLabel}
+                onChange={(e) => setAddLabel(e.target.value)}
+                placeholder="A"
+              />
+            </label>
+          )}
+          <button
+            type="button"
+            className={styles.runBtn}
+            onClick={handleAddPoint}
+          >
+            Add
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.editorBlock}>
+        <h3 className={styles.optionsTitle}>Preset (replace data)</h3>
         <div className={styles.theoreticalForm}>
           <label className={styles.fieldLabel}>
             <span>Preset</span>
@@ -407,26 +517,51 @@ export function DecisionTreeSection() {
         </div>
       )}
 
-      {mode === 'decision-tree' && tree && training.length > 0 && (
+      {tree && training.length > 0 && (
         <div className={styles.graphBlock}>
-          <h3 className={styles.graphTitle}>Tree structure</h3>
-          <pre
-            className={styles.theoreticalHint}
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.85rem',
-              whiteSpace: 'pre-wrap',
-              overflow: 'auto',
-              maxHeight: '280px',
-              padding: '0.75rem',
-              background: 'var(--bg-input)',
-              borderRadius: 'var(--radius)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            {treeToString(tree)}
-          </pre>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <h3 className={styles.graphTitle} style={{ margin: 0 }}>Tree structure</h3>
+            <label className={styles.fieldLabel} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="radio"
+                name="treeView"
+                checked={treeView === 'visual'}
+                onChange={() => setTreeView('visual')}
+              />
+              <span>Visual</span>
+            </label>
+            <label className={styles.fieldLabel} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="radio"
+                name="treeView"
+                checked={treeView === 'text'}
+                onChange={() => setTreeView('text')}
+              />
+              <span>Text</span>
+            </label>
+          </div>
+          {treeView === 'visual' ? (
+            <TreeVisualization tree={tree} getColor={getColor} />
+          ) : (
+            <pre
+              className={styles.theoreticalHint}
+              style={{
+                margin: 0,
+                marginTop: '0.75rem',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.85rem',
+                whiteSpace: 'pre-wrap',
+                overflow: 'auto',
+                maxHeight: '280px',
+                padding: '0.75rem',
+                background: 'var(--bg-input)',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {treeToString(tree)}
+            </pre>
+          )}
         </div>
       )}
     </div>

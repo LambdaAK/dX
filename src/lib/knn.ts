@@ -120,9 +120,9 @@ export function knnDecisionGrid(
   return out
 }
 
-/** Generate preset 2D datasets for KNN demo. rand in [0,1). */
+/** Generate preset 2D datasets for KNN / decision tree demos. rand in [0,1). */
 export function generatePresetDataset(
-  preset: 'blobs' | 'xor' | 'circles',
+  preset: 'blobs' | 'xor' | 'circles' | 'moons' | 'three-blobs' | 'stripes' | 'nested',
   nPerClass: number,
   rand: () => number
 ): TrainingPoint[] {
@@ -166,8 +166,7 @@ export function generatePresetDataset(
         label: '1',
       })
     }
-  } else {
-    // circles: inner circle label A, outer ring label B
+  } else if (preset === 'circles') {
     for (let i = 0; i < nPerClass; i++) {
       const r = 1.5 * rand()
       const th = 2 * Math.PI * rand()
@@ -185,6 +184,86 @@ export function generatePresetDataset(
         y: r * Math.sin(th),
         label: 'B',
       })
+    }
+  } else if (preset === 'moons') {
+    // Two interleaving crescents (classic sklearn-style)
+    const spread = 0.25
+    for (let i = 0; i < nPerClass; i++) {
+      const t = rand() * Math.PI
+      out.push({
+        x: Math.cos(t) + 0.5 + spread * gaussian(),
+        y: Math.sin(t) * 0.6 - 0.2 + spread * gaussian(),
+        label: 'A',
+      })
+    }
+    for (let i = 0; i < nPerClass; i++) {
+      const t = rand() * Math.PI
+      out.push({
+        x: 1 - Math.cos(t) - 0.5 + spread * gaussian(),
+        y: 0.6 - Math.sin(t) * 0.6 + 0.2 + spread * gaussian(),
+        label: 'B',
+      })
+    }
+  } else if (preset === 'three-blobs') {
+    for (let i = 0; i < nPerClass; i++) {
+      out.push({
+        x: 0 + 0.6 * gaussian(),
+        y: 2 + 0.6 * gaussian(),
+        label: 'A',
+      })
+      out.push({
+        x: -1.8 + 0.6 * gaussian(),
+        y: -1.2 + 0.6 * gaussian(),
+        label: 'B',
+      })
+      out.push({
+        x: 1.8 + 0.6 * gaussian(),
+        y: -1.2 + 0.6 * gaussian(),
+        label: 'C',
+      })
+    }
+  } else if (preset === 'stripes') {
+    // Horizontal stripes: y bands with noise
+    const n = nPerClass * 3
+    for (let i = 0; i < n; i++) {
+      const x = -2.5 + 5 * rand()
+      const y = -2.5 + 5 * rand()
+      const band = Math.floor((y + 2.5) / (5 / 3))
+      const label = band % 2 === 0 ? 'A' : 'B'
+      out.push({
+        x: x + 0.15 * gaussian(),
+        y: y + 0.15 * gaussian(),
+        label,
+      })
+    }
+  } else {
+    // nested: inner axis-aligned rectangle A, outer frame B
+    const nA = nPerClass
+    const nB = nPerClass * 2
+    for (let i = 0; i < nA; i++) {
+      out.push({
+        x: -0.8 + 1.6 * rand(),
+        y: -0.8 + 1.6 * rand(),
+        label: 'A',
+      })
+    }
+    for (let i = 0; i < nB; i++) {
+      const side = Math.floor(rand() * 4)
+      let x: number, y: number
+      if (side === 0) {
+        x = -2.5 + 1.2 * rand()
+        y = -2.5 + 5 * rand()
+      } else if (side === 1) {
+        x = 1.3 + 1.2 * rand()
+        y = -2.5 + 5 * rand()
+      } else if (side === 2) {
+        x = -2.5 + 5 * rand()
+        y = -2.5 + 1.2 * rand()
+      } else {
+        x = -2.5 + 5 * rand()
+        y = 1.3 + 1.2 * rand()
+      }
+      out.push({ x, y, label: 'B' })
     }
   }
   return out

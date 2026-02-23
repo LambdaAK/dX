@@ -2,7 +2,7 @@ import type { Point2D, TrainingPoint } from '@/lib/knn'
 
 export type { Point2D, TrainingPoint }
 
-export type KNNDatasetPreset = 'blobs' | 'xor' | 'circles'
+export type KNNDatasetPreset = 'blobs' | 'xor' | 'circles' | 'moons' | 'three-blobs' | 'stripes' | 'nested'
 
 export type KNNSectionState = {
   preset: KNNDatasetPreset

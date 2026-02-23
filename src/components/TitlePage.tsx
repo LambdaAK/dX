@@ -145,9 +145,9 @@ export function TitlePage({ onSelect }: Props) {
               className={styles.card}
               onClick={() => onSelect('decision-tree')}
             >
-              <span className={styles.cardTitle}>Decision tree &amp; Random forest</span>
+              <span className={styles.cardTitle}>Decision tree</span>
               <span className={styles.cardDesc}>
-                CART trees (Gini split) and forest of bootstrap trees. Compare decision boundaries and tree structure
+                CART trees (Gini split). Add or paste x,y,label data; view the tree and decision boundary
               </span>
             </button>
           </div>

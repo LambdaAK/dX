@@ -36,11 +36,16 @@ const PRESETS: { id: KNNDatasetPreset; label: string }[] = [
   { id: 'blobs', label: 'Two blobs' },
   { id: 'xor', label: 'XOR' },
   { id: 'circles', label: 'Circles' },
+  { id: 'moons', label: 'Moons' },
+  { id: 'three-blobs', label: 'Three blobs' },
+  { id: 'stripes', label: 'Stripes' },
+  { id: 'nested', label: 'Nested rectangle' },
 ]
 
 const LABEL_COLORS: Record<string, string> = {
   A: 'var(--accent)',
   B: '#0ea5e9',
+  C: '#22c55e',
   '0': '#22c55e',
   '1': '#a855f7',
 }
