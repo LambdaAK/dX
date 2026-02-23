@@ -204,6 +204,179 @@ export function isIrreducible(chain: MarkovChainDef): boolean {
   return true
 }
 
+function gcd(a: number, b: number): number {
+  a = Math.abs(a)
+  b = Math.abs(b)
+  while (b !== 0) {
+    const t = b
+    b = a % b
+    a = t
+  }
+  return a
+}
+
+/**
+ * Check if the chain is aperiodic: every state has period 1.
+ * The period of a state i is the gcd of { n >= 1 : P^n(i,i) > 0 }; state i is aperiodic if that gcd is 1.
+ */
+export function isAperiodic(chain: MarkovChainDef): boolean {
+  const states = chain.states
+  const n = states.length
+  if (n === 0) return true
+  const P: Record<string, Record<string, number>> = {}
+  for (const from of states) {
+    P[from] = {}
+    for (const to of states) P[from][to] = 0
+  }
+  for (const t of chain.transitions) {
+    P[t.from][t.to] = (P[t.from][t.to] ?? 0) + t.p
+  }
+  const mult = (
+    A: Record<string, Record<string, number>>,
+    B: Record<string, Record<string, number>>
+  ): Record<string, Record<string, number>> => {
+    const C: Record<string, Record<string, number>> = {}
+    for (const i of states) {
+      C[i] = {}
+      for (const j of states) {
+        let sum = 0
+        for (const k of states) sum += A[i][k] * B[k][j]
+        C[i][j] = sum
+      }
+    }
+    return C
+  }
+  const returnTimes: number[][] = states.map(() => [])
+  let Pn: Record<string, Record<string, number>> = { ...P }
+  for (let step = 1; step <= n; step++) {
+    for (let i = 0; i < states.length; i++) {
+      const s = states[i]
+      if (Pn[s][s] > 0) returnTimes[i].push(step)
+    }
+    if (step < n) Pn = mult(Pn, P)
+  }
+  for (let i = 0; i < states.length; i++) {
+    const times = returnTimes[i]
+    if (times.length === 0) return false
+    let d = times[0]
+    for (let j = 1; j < times.length; j++) d = gcd(d, times[j])
+    if (d !== 1) return false
+  }
+  return true
+}
+
+/**
+ * Stationary distribution π satisfying π P = π (π as row vector), Σ π = 1.
+ * Returns null if the chain is not irreducible (no unique stationary distribution).
+ */
+export function getStationaryDistribution(chain: MarkovChainDef): Record<string, number> | null {
+  if (!isIrreducible(chain)) return null
+  const states = chain.states
+  const n = states.length
+  if (n === 0) return {}
+  const P: Record<string, Record<string, number>> = {}
+  for (const from of states) {
+    P[from] = {}
+    for (const to of states) P[from][to] = 0
+  }
+  for (const t of chain.transitions) {
+    P[t.from][t.to] = (P[t.from][t.to] ?? 0) + t.p
+  }
+  // π P = π  =>  (P^T - I) π^T = 0. Replace last row by sum(π)=1.
+  const M: number[][] = states.map((_, i) =>
+    states.map((_, j) =>
+      i === n - 1 ? 1 : P[states[j]][states[i]] - (i === j ? 1 : 0)
+    )
+  )
+  const b: number[] = states.map((_, i) => (i === n - 1 ? 1 : 0))
+  const eps = 1e-10
+  for (let col = 0; col < n; col++) {
+    let pivot = -1
+    for (let row = col; row < n; row++) {
+      if (Math.abs(M[row][col]) > eps) {
+        pivot = row
+        break
+      }
+    }
+    if (pivot === -1) continue
+    ;[M[col], M[pivot]] = [M[pivot], M[col]]
+    ;[b[col], b[pivot]] = [b[pivot], b[col]]
+    const scale = M[col][col]
+    for (let j = 0; j < n; j++) M[col][j] /= scale
+    b[col] /= scale
+    for (let row = 0; row < n; row++) {
+      if (row === col || Math.abs(M[row][col]) < eps) continue
+      const f = M[row][col]
+      for (let j = 0; j < n; j++) M[row][j] -= f * M[col][j]
+      b[row] -= f * b[col]
+    }
+  }
+  const pi: Record<string, number> = {}
+  for (let i = 0; i < n; i++) {
+    pi[states[i]] = b[i]
+  }
+  return pi
+}
+
+/** Total variation distance: (1/2) Σ_s |p(s) - q(s)|. */
+export function totalVariationDistance(
+  p: Record<string, number>,
+  q: Record<string, number>,
+  states: string[]
+): number {
+  let sum = 0
+  for (const s of states) {
+    sum += Math.abs((p[s] ?? 0) - (q[s] ?? 0))
+  }
+  return 0.5 * sum
+}
+
+export type DistributionOverTimeResult = {
+  t: number[]
+  distributions: Record<string, number[]>
+}
+
+/**
+ * Compute P(X_t = s) for each state s and t = 0, 1, ..., maxSteps.
+ * Uses initial distribution μ (column vector) and transition matrix P: distribution at time t is P^t μ.
+ */
+export function computeDistributionOverTime(
+  chain: MarkovChainDef,
+  maxSteps: number
+): DistributionOverTimeResult {
+  const states = chain.states
+  const t = Array.from({ length: maxSteps + 1 }, (_, i) => i)
+  const distributions: Record<string, number[]> = {}
+  for (const s of states) {
+    distributions[s] = new Array(maxSteps + 1)
+  }
+  const P: Record<string, Record<string, number>> = {}
+  for (const from of states) {
+    P[from] = {}
+    for (const to of states) P[from][to] = 0
+  }
+  for (const tr of chain.transitions) {
+    P[tr.from][tr.to] = (P[tr.from][tr.to] ?? 0) + tr.p
+  }
+  let mu: Record<string, number> = { ...chain.initialDistribution }
+  for (let step = 0; step <= maxSteps; step++) {
+    for (const s of states) {
+      distributions[s][step] = mu[s] ?? 0
+    }
+    if (step < maxSteps) {
+      const next: Record<string, number> = {}
+      for (const to of states) {
+        next[to] = 0
+        for (const from of states) {
+          next[to] += (mu[from] ?? 0) * P[from][to]
+        }
+      }
+      mu = next
+    }
+  }
+  return { t, distributions }
+}
+
 /** From each state, cumulative probabilities and next-state list for sampling. */
 export function buildTransitionMap(chain: MarkovChainDef): Map<string, { to: string[]; cumul: number[] }> {
   const map = new Map<string, { to: string[]; cumul: number[] }>()

@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import {
   LineChart,
   Line,
@@ -9,11 +11,28 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { parseMarkovDSL, runSimulation, isIrreducible, type SimulateResult } from '@/lib/markovChain'
+import {
+  parseMarkovDSL,
+  runSimulation,
+  isIrreducible,
+  isAperiodic,
+  getStationaryDistribution,
+  totalVariationDistance,
+  computeDistributionOverTime,
+  type SimulateResult,
+} from '@/lib/markovChain'
 import { createSeededRng } from '@/lib/random'
 import type { MarkovChainDef } from '@/types/markov'
 import { MarkovChainGraph } from '@/components/MarkovChainGraph'
 import styles from './MarkovChainSection.module.css'
+
+function renderLatex(latex: string, displayMode = false): string {
+  try {
+    return katex.renderToString(latex, { displayMode, throwOnError: false })
+  } catch {
+    return latex
+  }
+}
 
 const DEFAULT_DSL = `States: A, B, C
 Initial distribution: A : 0.5, B : 0.3, C : 0.2
@@ -28,6 +47,7 @@ export function MarkovChainSection() {
 
   const [numTrajectories, setNumTrajectories] = useState(500)
   const [trajectoryLength, setTrajectoryLength] = useState(50)
+  const [theoreticalSteps, setTheoreticalSteps] = useState(50)
   const [seed, setSeed] = useState<string>('')
   const [simResult, setSimResult] = useState<SimulateResult | null>(null)
   const [simRunning, setSimRunning] = useState(false)
@@ -80,6 +100,11 @@ export function MarkovChainSection() {
     return P
   }, [chain])
 
+  const stationaryDist = useMemo(
+    () => (chain ? getStationaryDistribution(chain) : null),
+    [chain]
+  )
+
   const chartData = useMemo(() => {
     if (!simResult || !chain) return []
     return simResult.t.map((t, i) => {
@@ -90,6 +115,30 @@ export function MarkovChainSection() {
       return row
     })
   }, [simResult, chain])
+
+  const finalTvDistance = useMemo(() => {
+    if (!simResult || !chain || !stationaryDist) return null
+    const last = simResult.t.length - 1
+    const empirical: Record<string, number> = {}
+    for (const s of chain.states) empirical[s] = simResult.proportions[s][last]
+    return totalVariationDistance(empirical, stationaryDist, chain.states)
+  }, [simResult, chain, stationaryDist])
+
+  const theoreticalResult = useMemo(
+    () => (chain && theoreticalSteps > 0 ? computeDistributionOverTime(chain, theoreticalSteps) : null),
+    [chain, theoreticalSteps]
+  )
+
+  const theoreticalChartData = useMemo(() => {
+    if (!theoreticalResult || !chain) return []
+    return theoreticalResult.t.map((t, i) => {
+      const row: Record<string, number | string> = { t }
+      for (const s of chain.states) {
+        row[s] = theoreticalResult.distributions[s][i]
+      }
+      return row
+    })
+  }, [theoreticalResult, chain])
 
   return (
     <div className={styles.section}>
@@ -168,10 +217,128 @@ export function MarkovChainSection() {
                 <span className={styles.propertyNo}>No</span>
               )}
             </p>
+            <p className={styles.propertyLine}>
+              <strong>Aperiodic:</strong>{' '}
+              {isAperiodic(chain) ? (
+                <span className={styles.propertyYes}>Yes</span>
+              ) : (
+                <span className={styles.propertyNo}>No</span>
+              )}
+            </p>
+            {(() => {
+              const irreducible = isIrreducible(chain)
+              const aperiodic = isAperiodic(chain)
+              const converges = irreducible && aperiodic
+              return (
+                <p className={styles.propertyLine}>
+                  <strong>Converges to stationary π:</strong>{' '}
+                  {converges ? (
+                    <span className={styles.propertyYes}>Yes</span>
+                  ) : (
+                    <span className={styles.propertyNo}>
+                      {!irreducible ? 'No (not irreducible)' : 'No (periodic)'}
+                    </span>
+                  )}
+                </p>
+              )
+            })()}
+            {stationaryDist && (
+              <p className={styles.propertyLine}>
+                <strong>Stationary distribution π:</strong>{' '}
+                <span className={styles.stationaryValues}>
+                  {chain.states.map((s) => `${s}: ${(stationaryDist[s] ?? 0).toFixed(4)}`).join(', ')}
+                </span>
+              </p>
+            )}
           </div>
 
           <div className={styles.optionsBlock}>
             <h3 className={styles.optionsTitle}>What to do</h3>
+
+            <div className={styles.theoreticalBlock}>
+              <h4 className={styles.simulateTitle}>Probability over time (theoretical)</h4>
+              <p className={styles.theoreticalHint}>
+                <span dangerouslySetInnerHTML={{ __html: renderLatex('P(X_t = s)') }} />
+                {' from initial distribution '}
+                <span dangerouslySetInnerHTML={{ __html: renderLatex('\\mu') }} />
+                {' distribution at time '}
+                <span dangerouslySetInnerHTML={{ __html: renderLatex('t') }} />
+                {' is '}
+                <span dangerouslySetInnerHTML={{ __html: renderLatex('P^t \\mu') }} />
+                .
+              </p>
+              <div className={styles.theoreticalForm}>
+                <label className={styles.fieldLabel}>
+                  <span>Steps</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={theoreticalSteps}
+                    onChange={(e) => setTheoreticalSteps(Math.max(1, Number(e.target.value) || 1))}
+                    className={styles.input}
+                  />
+                </label>
+              </div>
+              {theoreticalChartData.length > 0 && (
+                <div className={styles.chartBlock}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart
+                      data={theoreticalChartData}
+                      margin={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis
+                        dataKey="t"
+                        type="number"
+                        tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+                        label={{
+                          value: 'Time step (t)',
+                          position: 'insideBottom',
+                          offset: -4,
+                          fill: 'var(--text-muted)',
+                          fontSize: 12,
+                        }}
+                      />
+                      <YAxis
+                        type="number"
+                        domain={[0, 1]}
+                        tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+                        tickFormatter={(v) => Number(v).toFixed(2)}
+                        label={{
+                          value: 'P(X_t = s)',
+                          angle: -90,
+                          position: 'insideLeft',
+                          fill: 'var(--text-muted)',
+                          fontSize: 12,
+                        }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: 'var(--bg-elevated)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                        }}
+                        formatter={(value: number, name: string) => [Number(value).toFixed(4), name]}
+                        labelFormatter={(t) => `t = ${t}`}
+                      />
+                      <Legend />
+                      {chain.states.map((s, i) => (
+                        <Line
+                          key={s}
+                          type="monotone"
+                          dataKey={s}
+                          name={s}
+                          stroke={COLORS[i % COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
 
             <div className={styles.simulateBlock}>
               <h4 className={styles.simulateTitle}>Simulate</h4>
@@ -276,6 +443,12 @@ export function MarkovChainSection() {
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
+                {stationaryDist != null && finalTvDistance != null && (
+                  <p className={styles.convergenceHint}>
+                    Total variation distance from final proportions to π: {finalTvDistance.toFixed(4)}
+                    {finalTvDistance < 0.05 && ' (close to stationary)'}
+                  </p>
+                )}
               </div>
             )}
           </div>

@@ -207,6 +207,42 @@
   line-height: 1.4;
 }
 
+.convergenceHint {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.stationaryValues {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.theoreticalBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.theoreticalHint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.theoreticalHint .katex {
+  font-size: 1em;
+}
+
+.theoreticalForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
 .simulateForm {
   display: flex;
   flex-wrap: wrap;
