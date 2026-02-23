@@ -1,7 +1,7 @@
 import styles from './TitlePage.module.css'
 
 type Props = {
-  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln') => void
+  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln' | 'clt') => void
 }
 
 export function TitlePage({ onSelect }: Props) {
@@ -60,6 +60,16 @@ export function TitlePage({ onSelect }: Props) {
           <span className={styles.cardTitle}>Law of Large Numbers</span>
           <span className={styles.cardDesc}>
             See the sample average converge to the expected value for Bernoulli, Gaussian, or Uniform
+          </span>
+        </button>
+        <button
+          type="button"
+          className={styles.card}
+          onClick={() => onSelect('clt')}
+        >
+          <span className={styles.cardTitle}>Central Limit Theorem</span>
+          <span className={styles.cardDesc}>
+            Histogram of sample means: see the distribution become normal as n grows
           </span>
         </button>
       </div>
