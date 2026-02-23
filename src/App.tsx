@@ -4,9 +4,10 @@ import { StochasticPdeSection } from '@/components/StochasticPdeSection'
 import { MarkovChainSection } from '@/components/MarkovChainSection'
 import { CtmcSection } from '@/components/CtmcSection'
 import { BanditSection } from '@/components/BanditSection'
+import { LLNSection } from '@/components/LLNSection'
 import styles from './App.module.css'
 
-export type AppPage = 'home' | 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit'
+export type AppPage = 'home' | 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln'
 
 export default function App() {
   const [page, setPage] = useState<AppPage>('home')
@@ -59,6 +60,13 @@ export default function App() {
               >
                 Bandits
               </button>
+              <button
+                type="button"
+                className={page === 'lln' ? styles.navBtnActive : styles.navBtn}
+                onClick={() => setPage('lln')}
+              >
+                LLN
+              </button>
             </nav>
           </header>
           <main className={styles.main}>
@@ -66,6 +74,7 @@ export default function App() {
             {page === 'markov-chain' && <MarkovChainSection />}
             {page === 'ctmc' && <CtmcSection />}
             {page === 'bandit' && <BanditSection />}
+            {page === 'lln' && <LLNSection />}
           </main>
         </>
       )}

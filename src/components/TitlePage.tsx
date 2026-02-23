@@ -1,7 +1,7 @@
 import styles from './TitlePage.module.css'
 
 type Props = {
-  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit') => void
+  onSelect: (section: 'stochastic-pde' | 'markov-chain' | 'ctmc' | 'bandit' | 'lln') => void
 }
 
 export function TitlePage({ onSelect }: Props) {
@@ -50,6 +50,16 @@ export function TitlePage({ onSelect }: Props) {
           <span className={styles.cardTitle}>Multi-Armed Bandits</span>
           <span className={styles.cardDesc}>
             Compare exploration strategies: ε-greedy, UCB, Thompson Sampling. Visualize regret over time
+          </span>
+        </button>
+        <button
+          type="button"
+          className={styles.card}
+          onClick={() => onSelect('lln')}
+        >
+          <span className={styles.cardTitle}>Law of Large Numbers</span>
+          <span className={styles.cardDesc}>
+            See the sample average converge to the expected value for Bernoulli, Gaussian, or Uniform
           </span>
         </button>
       </div>
