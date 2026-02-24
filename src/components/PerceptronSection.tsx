@@ -33,13 +33,13 @@ function renderLatex(latex: string, displayMode = false): string {
   }
 }
 
-type Preset = 'blobs' | 'diagonal' | 'moons' | 'xor'
+type Preset = 'blobs' | 'diagonal' | 'vertical' | 'wide-margin'
 
-const PRESETS: { id: Preset; label: string; separable: boolean }[] = [
-  { id: 'blobs', label: 'Two blobs (separable)', separable: true },
-  { id: 'diagonal', label: 'Diagonal (separable)', separable: true },
-  { id: 'moons', label: 'Moons (non-separable)', separable: false },
-  { id: 'xor', label: 'XOR (non-separable)', separable: false },
+const PRESETS: { id: Preset; label: string }[] = [
+  { id: 'blobs', label: 'Two blobs' },
+  { id: 'diagonal', label: 'Diagonal boundary' },
+  { id: 'vertical', label: 'Vertical split' },
+  { id: 'wide-margin', label: 'Wide margin' },
 ]
 
 const DOMAIN = { xMin: -4, xMax: 4, yMin: -4, yMax: 4 }
@@ -86,8 +86,6 @@ export function PerceptronSection() {
     }
     return (correct / data.length) * 100
   }, [result, data])
-
-  const presetInfo = PRESETS.find((p) => p.id === preset)!
 
   return (
     <div className={styles.section}>
@@ -302,15 +300,9 @@ export function PerceptronSection() {
                 </tbody>
               </table>
             </div>
-            {!result.converged && !presetInfo.separable && (
-              <p className={styles.theoreticalHint} style={{ marginTop: '8px', color: 'var(--danger)' }}>
-                <strong>Note:</strong> <em>{presetInfo.label.split('(')[0].trim()}</em> is not linearly separable —
-                the perceptron cycles without converging. Try a separable preset to see convergence.
-              </p>
-            )}
-            {!result.converged && presetInfo.separable && (
+            {!result.converged && (
               <p className={styles.theoreticalHint} style={{ marginTop: '8px' }}>
-                Increase max epochs to allow convergence on this separable dataset.
+                Increase max epochs to allow full convergence.
               </p>
             )}
           </div>

@@ -114,9 +114,9 @@ export function boundaryLine(
   return [pts[0], pts[pts.length - 1]]
 }
 
-/** Generate 2D binary datasets for the perceptron demo. */
+/** Generate linearly separable 2D binary datasets for the perceptron demo. */
 export function generateDataset(
-  preset: 'blobs' | 'diagonal' | 'moons' | 'xor',
+  preset: 'blobs' | 'diagonal' | 'vertical' | 'wide-margin',
   nPerClass: number,
   rand: () => number
 ): DataPoint[] {
@@ -126,42 +126,30 @@ export function generateDataset(
   const out: DataPoint[] = []
 
   if (preset === 'blobs') {
+    // Two Gaussian blobs at diagonal positions
     for (let i = 0; i < nPerClass; i++) {
       out.push({ x: 1.5 + 0.8 * gaussian(), y: 1.5 + 0.8 * gaussian(), label: 1 })
       out.push({ x: -1.5 + 0.8 * gaussian(), y: -1.5 + 0.8 * gaussian(), label: -1 })
     }
   } else if (preset === 'diagonal') {
-    // Points above y = x + noise → +1; below → -1
+    // Separated by y = x: class +1 above the line, class -1 below
     for (let i = 0; i < nPerClass; i++) {
       const x1 = -3 + 6 * rand()
-      out.push({ x: x1 + 0.2 * gaussian(), y: x1 + 0.5 + 0.5 * gaussian(), label: 1 })
+      out.push({ x: x1 + 0.2 * gaussian(), y: x1 + 0.6 + 0.4 * gaussian(), label: 1 })
       const x2 = -3 + 6 * rand()
-      out.push({ x: x2 + 0.2 * gaussian(), y: x2 - 0.5 + 0.5 * gaussian(), label: -1 })
+      out.push({ x: x2 + 0.2 * gaussian(), y: x2 - 0.6 + 0.4 * gaussian(), label: -1 })
     }
-  } else if (preset === 'moons') {
-    const spread = 0.25
+  } else if (preset === 'vertical') {
+    // Separated by a vertical boundary at x = 0
     for (let i = 0; i < nPerClass; i++) {
-      const t1 = rand() * Math.PI
-      out.push({
-        x: Math.cos(t1) * 2 + spread * gaussian(),
-        y: Math.sin(t1) * 2 + spread * gaussian(),
-        label: 1,
-      })
-      const t2 = rand() * Math.PI
-      out.push({
-        x: 2 - Math.cos(t2) * 2 + spread * gaussian(),
-        y: 0.5 - Math.sin(t2) * 2 + spread * gaussian(),
-        label: -1,
-      })
+      out.push({ x: 0.6 + 0.7 * Math.abs(gaussian()), y: -3 + 6 * rand(), label: 1 })
+      out.push({ x: -0.6 - 0.7 * Math.abs(gaussian()), y: -3 + 6 * rand(), label: -1 })
     }
   } else {
-    // xor: 4 quadrants, each quadrant → label by sign(x·y)
-    const spread = 0.4
+    // Wide margin: two blobs far apart with a large separating gap
     for (let i = 0; i < nPerClass; i++) {
-      out.push({ x: 1.5 + spread * gaussian(), y: 1.5 + spread * gaussian(), label: 1 })
-      out.push({ x: -1.5 + spread * gaussian(), y: -1.5 + spread * gaussian(), label: 1 })
-      out.push({ x: 1.5 + spread * gaussian(), y: -1.5 + spread * gaussian(), label: -1 })
-      out.push({ x: -1.5 + spread * gaussian(), y: 1.5 + spread * gaussian(), label: -1 })
+      out.push({ x: 0.5 * gaussian(), y: 2.5 + 0.5 * gaussian(), label: 1 })
+      out.push({ x: 0.5 * gaussian(), y: -2.5 + 0.5 * gaussian(), label: -1 })
     }
   }
 
