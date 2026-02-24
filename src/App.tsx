@@ -21,6 +21,10 @@ import { SimplexSection } from '@/components/SimplexSection'
 import { PerceptronSection } from '@/components/PerceptronSection'
 import styles from './App.module.css'
 
+function getInitialTheme(): 'light' | 'dark' {
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+}
+
 export type AppPage =
   | 'home'
   | 'stochastic-pde'
@@ -45,11 +49,31 @@ export type AppPage =
 
 export default function App() {
   const [page, setPage] = useState<AppPage>('home')
+  const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme)
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    if (next === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+    localStorage.setItem('theme', next)
+  }
 
   return (
     <div className={styles.app}>
       {page === 'home' ? (
         <>
+          <button
+            type="button"
+            className={styles.themeToggleFixed}
+            onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+          >
+            {theme === 'dark' ? '☀' : '🌙'}
+          </button>
           <main className={styles.mainHome}>
             <TitlePage onSelect={setPage} />
           </main>
@@ -200,6 +224,14 @@ export default function App() {
                 Perceptron
               </button>
             </nav>
+            <button
+              type="button"
+              className={styles.themeToggle}
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+            >
+              {theme === 'dark' ? '☀' : '🌙'}
+            </button>
           </header>
           <main className={styles.main}>
             {page === 'stochastic-pde' && <StochasticPdeSection />}
