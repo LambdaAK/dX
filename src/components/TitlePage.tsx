@@ -36,7 +36,7 @@ type Lab = { id: SectionId; category: string; title: string; description: string
 
 const LABS: Lab[] = [
   { id: 'stochastic-pde', category: 'Stochastic processes', title: 'Stochastic PDE', description: 'SDEs, sample paths, and Fokker–Planck density' },
-  { id: 'markov-chain', category: 'Probability', title: 'Markov Chain', description: 'Discrete-time chains; empirical trials and stationary distribution' },
+  { id: 'markov-chain', category: 'Stochastic processes', title: 'Markov Chain', description: 'Discrete-time chains; empirical trials and stationary distribution' },
   { id: 'ctmc', category: 'Probability', title: 'CTMC', description: 'Continuous-time chains; rate matrix and holding times' },
   { id: 'bandit', category: 'Reinforcement learning', title: 'Multi-Armed Bandits', description: 'ε-greedy, UCB, Thompson Sampling; regret over time' },
   { id: 'lln', category: 'Probability', title: 'Law of Large Numbers', description: 'Sample mean → expectation (Bernoulli, Gaussian, Uniform)' },
