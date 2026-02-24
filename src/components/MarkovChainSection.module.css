@@ -338,3 +338,25 @@
   font-weight: 600;
   color: var(--text);
 }
+
+/* Heat equation color key */
+.heatKey {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.heatKeyLabel {
+  flex-shrink: 0;
+}
+
+.heatKeyBar {
+  flex: 1;
+  max-width: 200px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}

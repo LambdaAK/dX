@@ -12,6 +12,7 @@ import { LogisticRegressionSection } from '@/components/LogisticRegressionSectio
 import { KMeansSection } from '@/components/KMeansSection'
 import { DBSCANSection } from '@/components/DBSCANSection'
 import { PendulumSection } from '@/components/PendulumSection'
+import { HeatEquationSection } from '@/components/HeatEquationSection'
 import { KNNSection } from '@/components/KNNSection'
 import { DecisionTreeSection } from '@/components/DecisionTreeSection'
 import { BaggingSection } from '@/components/BaggingSection'
@@ -52,6 +53,7 @@ export type AppPage =
   | 'perceptron'
   | 'qp'
   | 'svm'
+  | 'heat-equation'
 
 export default function App() {
   const [page, setPage] = useState<AppPage>('home')
@@ -127,6 +129,7 @@ export default function App() {
             {page === 'perceptron' && <PerceptronSection />}
             {page === 'qp' && <QPSection />}
             {page === 'svm' && <SVMSection />}
+            {page === 'heat-equation' && <HeatEquationSection />}
           </main>
         </>
       )}
