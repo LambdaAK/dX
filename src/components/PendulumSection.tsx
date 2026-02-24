@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import {
@@ -13,6 +13,9 @@ import {
 } from 'recharts'
 import { integratePendulum } from '@/lib/pendulum'
 import styles from './MarkovChainSection.module.css'
+
+const PENDULUM_PIVOT = { x: 160, y: 40 }
+const PENDULUM_SCALE = 80
 
 function renderLatex(latex: string, displayMode = false): string {
   try {
@@ -79,22 +82,87 @@ export function PendulumSection() {
   const currentTheta = result ? result.theta[timeIndexClamped] : 0
   const currentOmega = result ? result.omega[timeIndexClamped] : 0
   const currentT = result ? result.t[timeIndexClamped] : 0
+  const bobX = PENDULUM_PIVOT.x + PENDULUM_SCALE * Math.sin(currentTheta)
+  const bobY = PENDULUM_PIVOT.y + PENDULUM_SCALE * Math.cos(currentTheta)
+
+  const resultRef = useRef(result)
+  const lineRef = useRef<SVGLineElement>(null)
+  const bobRef = useRef<SVGCircleElement>(null)
+  const timeDisplayRef = useRef<HTMLSpanElement>(null)
+  const sliderRef = useRef<HTMLInputElement>(null)
+  const startTimeRef = useRef(0)
+  const startIndexRef = useRef(0)
+  const lastIndexRef = useRef(0)
+  const rafIdRef = useRef<number | null>(null)
+
+  resultRef.current = result
 
   useEffect(() => {
     if (!result || !playing) return
-    const n = result.t.length
-    let idx = timeIndexClamped
-    const id = setInterval(() => {
-      idx = (idx + 1) % n
-      setTimeIndex(idx)
-    }, 50)
-    return () => clearInterval(id)
-  }, [playing, result, timeIndexClamped])
+    const res = result
+    const n = res.t.length
+    const dt = res.t[1] - res.t[0]
+    const duration = res.t[n - 1] - res.t[0]
+    startTimeRef.current = performance.now() - timeIndexClamped * dt * 1000
+    startIndexRef.current = timeIndexClamped
 
-  const pendulumPivot = { x: 160, y: 40 }
-  const scale = 80
-  const bobX = pendulumPivot.x + scale * Math.sin(currentTheta)
-  const bobY = pendulumPivot.y + scale * Math.cos(currentTheta)
+    const tick = () => {
+      const elapsed = (performance.now() - startTimeRef.current) / 1000
+      const t = (startIndexRef.current * dt + elapsed) % duration
+      const fi = Math.max(0, t / dt)
+      const i0 = Math.min(Math.floor(fi), Math.max(0, n - 2))
+      const frac = fi - i0
+      const theta = res.theta[i0] + frac * (res.theta[i0 + 1] - res.theta[i0])
+      const omega = res.omega[i0] + frac * (res.omega[i0 + 1] - res.omega[i0])
+      const tDisplay = res.t[i0] + frac * (res.t[i0 + 1] - res.t[i0])
+      const idx = Math.min(Math.round(fi), n - 1)
+
+      const bobX = PENDULUM_PIVOT.x + PENDULUM_SCALE * Math.sin(theta)
+      const bobY = PENDULUM_PIVOT.y + PENDULUM_SCALE * Math.cos(theta)
+      if (lineRef.current) {
+        lineRef.current.setAttribute('x2', String(bobX))
+        lineRef.current.setAttribute('y2', String(bobY))
+      }
+      if (bobRef.current) {
+        bobRef.current.setAttribute('cx', String(bobX))
+        bobRef.current.setAttribute('cy', String(bobY))
+      }
+      if (timeDisplayRef.current) {
+        timeDisplayRef.current.textContent = `t = ${tDisplay.toFixed(2)} s · θ = ${(theta * RAD2DEG).toFixed(1)}° · ω = ${omega.toFixed(3)} rad/s`
+      }
+      if (sliderRef.current) {
+        sliderRef.current.value = String(idx)
+      }
+      lastIndexRef.current = idx
+      rafIdRef.current = requestAnimationFrame(tick)
+    }
+    rafIdRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (rafIdRef.current != null) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = null
+      }
+    }
+  }, [playing, result])
+
+  const handlePause = useCallback(() => {
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    if (result) {
+      setTimeIndex(Math.min(lastIndexRef.current, result.t.length - 1))
+    }
+    setPlaying(false)
+  }, [result])
+
+  const handlePlayPause = useCallback(() => {
+    if (playing) {
+      handlePause()
+    } else {
+      setPlaying(true)
+    }
+  }, [playing, handlePause])
 
   return (
     <div className={styles.section}>
@@ -303,20 +371,22 @@ export function PendulumSection() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
               <svg width={320} height={180} viewBox="0 0 320 180" style={{ overflow: 'visible' }}>
                 <line
-                  x1={pendulumPivot.x}
-                  y1={pendulumPivot.y}
+                  ref={lineRef}
+                  x1={PENDULUM_PIVOT.x}
+                  y1={PENDULUM_PIVOT.y}
                   x2={bobX}
                   y2={bobY}
                   stroke="var(--text)"
                   strokeWidth={2}
                 />
-                <circle cx={pendulumPivot.x} cy={pendulumPivot.y} r={4} fill="var(--text-muted)" />
-                <circle cx={bobX} cy={bobY} r={12} fill="var(--accent)" stroke="var(--text)" strokeWidth={1} />
+                <circle cx={PENDULUM_PIVOT.x} cy={PENDULUM_PIVOT.y} r={4} fill="var(--text-muted)" />
+                <circle ref={bobRef} cx={bobX} cy={bobY} r={12} fill="var(--accent)" stroke="var(--text)" strokeWidth={1} />
               </svg>
               <div className={styles.theoreticalForm} style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem' }}>
                 <label className={styles.fieldLabel}>
                   <span>Time (s)</span>
                   <input
+                    ref={sliderRef}
                     type="range"
                     min={0}
                     max={result.t.length - 1}
@@ -326,13 +396,13 @@ export function PendulumSection() {
                     style={{ width: 200 }}
                   />
                 </label>
-                <span className={styles.hint} style={{ alignSelf: 'center' }}>
+                <span ref={timeDisplayRef} className={styles.hint} style={{ alignSelf: 'center' }}>
                   t = {currentT.toFixed(2)} s · θ = {(currentTheta * RAD2DEG).toFixed(1)}° · ω = {currentOmega.toFixed(3)} rad/s
                 </span>
                 <button
                   type="button"
                   className={styles.runBtn}
-                  onClick={() => setPlaying((p) => !p)}
+                  onClick={handlePlayPause}
                 >
                   {playing ? 'Pause' : 'Play'}
                 </button>
