@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
-import { lu, solveLU } from '@/lib/matrixFactorizations'
+import { solveGeneral, type SolveResult } from '@/lib/linearSolve'
 import styles from './MarkovChainSection.module.css'
 
 function tex(latex: string, displayMode = false): string {
@@ -51,17 +51,6 @@ function parseVector(text: string, expectedLen: number): number[] | string {
   return parts
 }
 
-/** ‖Ax − b‖₂ */
-function residual(A: number[][], x: number[], b: number[]): number {
-  let sum = 0
-  for (let i = 0; i < A.length; i++) {
-    let Ax_i = 0
-    for (let j = 0; j < x.length; j++) Ax_i += A[i][j] * x[j]
-    sum += (Ax_i - b[i]) ** 2
-  }
-  return Math.sqrt(sum)
-}
-
 const DEFAULT_A = `2  1
 1  -1`
 const DEFAULT_B = `5
@@ -70,7 +59,7 @@ const DEFAULT_B = `5
 const SVG_SIZE = 400
 const PAD = 60
 
-/** For 2×2: line a*x + b*y = c. Return two points for drawing (in data coords). */
+/** Line a*x + b*y = c: two points for drawing. */
 function lineSegment(
   a: number,
   b: number,
@@ -79,14 +68,12 @@ function lineSegment(
 ): [[number, number], [number, number]] {
   const tol = 1e-12
   if (Math.abs(b) > tol) {
-    // y = (c - a*x)/b; use x = -extent, x = +extent
     return [
       [-extent, (c + a * extent) / b],
       [extent, (c - a * extent) / b],
     ]
   }
   if (Math.abs(a) > tol) {
-    // x = c/a (vertical line); use y = -extent, y = +extent
     const x0 = c / a
     return [
       [x0, -extent],
@@ -96,45 +83,49 @@ function lineSegment(
   return [[0, 0], [0, 0]]
 }
 
+type VizSolution =
+  | { type: 'point'; x: [number, number] }
+  | { type: 'line'; particular: [number, number]; direction: [number, number] }
+  | { type: 'none' }
+
 function AxEqualsBViz({
   A,
   b,
-  x,
+  solution,
 }: {
   A: number[][]
   b: number[]
-  x: number[]
+  solution: VizSolution
 }) {
+  const n = A[0]?.length ?? 0
   const extent = useMemo(() => {
-    const xs = [x[0], x[0]]
-    const ys = [x[1], x[1]]
-    for (let i = 0; i < 2; i++) {
-      const [[x1, y1], [x2, y2]] = lineSegment(A[i][0], A[i][1], b[i], 10)
-      xs.push(x1, x2)
-      ys.push(y1, y2)
+    let maxAbs = 1.2
+    if (solution.type === 'point') {
+      maxAbs = Math.max(maxAbs, Math.abs(solution.x[0]), Math.abs(solution.x[1]))
     }
-    const maxAbs = Math.max(
-      Math.max(...xs.map(Math.abs)),
-      Math.max(...ys.map(Math.abs)),
-      1.2
-    )
-    return { maxAbs }
-  }, [A, b, x])
+    if (solution.type === 'line') {
+      maxAbs = Math.max(
+        maxAbs,
+        Math.abs(solution.particular[0]),
+        Math.abs(solution.particular[1])
+      )
+    }
+    for (let i = 0; i < A.length; i++) {
+      const [[x1, y1], [x2, y2]] = lineSegment(A[i][0], A[i][1], b[i], 10)
+      maxAbs = Math.max(maxAbs, Math.abs(x1), Math.abs(y1), Math.abs(x2), Math.abs(y2))
+    }
+    return maxAbs
+  }, [A, b, solution])
 
-  const scale = (SVG_SIZE - 2 * PAD) / (2 * extent.maxAbs)
+  const scale = (SVG_SIZE - 2 * PAD) / (2 * extent)
   const cx = SVG_SIZE / 2
   const cy = SVG_SIZE / 2
   function toSvg(px: number, py: number): [number, number] {
     return [cx + scale * px, cy - scale * py]
   }
 
-  const line1 = lineSegment(A[0][0], A[0][1], b[0], extent.maxAbs + 1)
-  const line2 = lineSegment(A[1][0], A[1][1], b[1], extent.maxAbs + 1)
-  const [x1a, y1a] = toSvg(line1[0][0], line1[0][1])
-  const [x1b, y1b] = toSvg(line1[1][0], line1[1][1])
-  const [x2a, y2a] = toSvg(line2[0][0], line2[0][1])
-  const [x2b, y2b] = toSvg(line2[1][0], line2[1][1])
-  const [sx, sy] = toSvg(x[0], x[1])
+  const lineColors = ['#0ea5e9', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899']
+  const ext = extent + 1
 
   return (
     <svg
@@ -145,9 +136,49 @@ function AxEqualsBViz({
     >
       <line x1={0} y1={cy} x2={SVG_SIZE} y2={cy} stroke="var(--border)" strokeWidth={1} strokeDasharray="4 2" />
       <line x1={cx} y1={0} x2={cx} y2={SVG_SIZE} stroke="var(--border)" strokeWidth={1} strokeDasharray="4 2" />
-      <line x1={x1a} y1={y1a} x2={x1b} y2={y1b} stroke="#0ea5e9" strokeWidth={2} />
-      <line x1={x2a} y1={y2a} x2={x2b} y2={y2b} stroke="#10b981" strokeWidth={2} />
-      <circle cx={sx} cy={sy} r={6} fill="var(--accent)" stroke="var(--text)" strokeWidth={1.5} />
+      {A.map((row, i) => {
+        const [[x1, y1], [x2, y2]] = lineSegment(row[0], row[1], b[i], ext)
+        const [sx1, sy1] = toSvg(x1, y1)
+        const [sx2, sy2] = toSvg(x2, y2)
+        return (
+          <line
+            key={i}
+            x1={sx1}
+            y1={sy1}
+            x2={sx2}
+            y2={sy2}
+            stroke={lineColors[i % lineColors.length]}
+            strokeWidth={2}
+            opacity={n === 2 ? 1 : 0.7}
+          />
+        )
+      })}
+      {solution.type === 'point' && (
+        <circle
+          cx={toSvg(solution.x[0], solution.x[1])[0]}
+          cy={toSvg(solution.x[0], solution.x[1])[1]}
+          r={6}
+          fill="var(--accent)"
+          stroke="var(--text)"
+          strokeWidth={1.5}
+        />
+      )}
+      {solution.type === 'line' && (() => {
+        const [px, py] = solution.particular
+        const [dx, dy] = solution.direction
+        const norm = Math.hypot(dx, dy) || 1
+        const u = dx / norm
+        const v = dy / norm
+        const tMax = extent * 1.2
+        const p1 = toSvg(px - tMax * u, py - tMax * v)
+        const p2 = toSvg(px + tMax * u, py + tMax * v)
+        return (
+          <>
+            <line x1={p1[0]} y1={p1[1]} x2={p2[0]} y2={p2[1]} stroke="var(--accent)" strokeWidth={3} strokeLinecap="round" />
+            <circle cx={toSvg(px, py)[0]} cy={toSvg(px, py)[1]} r={5} fill="var(--accent)" stroke="var(--text)" strokeWidth={1} />
+          </>
+        )
+      })()}
     </svg>
   )
 }
@@ -163,42 +194,43 @@ export function SolveLinearSection() {
 
   const parseB = useMemo((): { vec: number[]; error: null } | { vec: null; error: string } | null => {
     if (!parseA.matrix) return null
-    const n = parseA.matrix.length
-    const p = parseVector(bText, n)
+    const p = parseVector(bText, parseA.matrix.length)
     return typeof p === 'string' ? { vec: null, error: p } : { vec: p, error: null }
   }, [bText, parseA.matrix])
 
-  const result = useMemo(() => {
+  const result = useMemo((): SolveResult | null => {
     if (!parseA.matrix || !parseB?.vec) return null
-    const A = parseA.matrix
-    const b = parseB.vec
-    if (A.length !== (A[0]?.length ?? 0)) return { error: 'Matrix must be square to solve Ax = b (use LU).' }
-    try {
-      const luResult = lu(A)
-      const x = solveLU(luResult, b)
-      const res = residual(A, x, b)
-      return { x, residual: res, error: null }
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : String(e) }
-    }
+    return solveGeneral(parseA.matrix, parseB.vec)
   }, [parseA.matrix, parseB])
 
-  const solution: { x: number[]; residual: number } | null =
-    result && 'x' in result && result.x != null && result.residual != null
-      ? { x: result.x, residual: result.residual }
-      : null
-  const is2x2 = parseA.matrix?.length === 2 && (parseA.matrix[0]?.length ?? 0) === 2
+  const n = parseA.matrix?.[0]?.length ?? 0
+  const is2D = n === 2
+
+  const vizSolution: VizSolution = useMemo(() => {
+    if (!is2D || !result) return { type: 'none' }
+    if (result.kind === 'none') return { type: 'none' }
+    if (result.kind === 'unique') return { type: 'point', x: [result.x[0], result.x[1]] }
+    if (result.kind === 'infinite' && result.basis.length > 0) {
+      const dir = result.basis[0]
+      return {
+        type: 'line',
+        particular: [result.particular[0], result.particular[1]],
+        direction: [dir[0], dir[1]],
+      }
+    }
+    return { type: 'none' }
+  }, [is2D, result])
 
   return (
     <div className={styles.section}>
       <div className={styles.intro}>
         <p className={styles.introText}>
-          Solve the linear system <span dangerouslySetInnerHTML={{ __html: tex('A\\mathbf{x} = \\mathbf{b}') }} />. Enter square matrix <span dangerouslySetInnerHTML={{ __html: tex('A') }} /> and vector <span dangerouslySetInnerHTML={{ __html: tex('\\mathbf{b}') }} />. The solver uses <strong>LU factorization with partial pivoting</strong>; solution <span dangerouslySetInnerHTML={{ __html: tex('\\mathbf{x}') }} /> and residual <span dangerouslySetInnerHTML={{ __html: tex('\\|A\\mathbf{x} - \\mathbf{b}\\|_2') }} /> are shown. For 2×2 systems you get a plot of the two lines and their intersection.
+          Solve <span dangerouslySetInnerHTML={{ __html: tex('A\\mathbf{x} = \\mathbf{b}') }} /> for any <span dangerouslySetInnerHTML={{ __html: tex('m \\times n') }} /> matrix <span dangerouslySetInnerHTML={{ __html: tex('A') }} />. The solver uses <strong>reduced row echelon form (RREF)</strong> and reports: <strong>no solution</strong>, a <strong>unique</strong> <span dangerouslySetInnerHTML={{ __html: tex('\\mathbf{x}') }} />, or <strong>infinitely many</strong> (parametric form). When there are 2 variables, the solution set is graphed (point, line, or constraint lines only if inconsistent).
         </p>
       </div>
 
       <div className={styles.editorBlock}>
-        <label className={styles.label}>Matrix A (square; one row per line)</label>
+        <label className={styles.label}>Matrix A (any m×n; one row per line)</label>
         <textarea
           className={styles.textarea}
           value={matrixText}
@@ -206,7 +238,9 @@ export function SolveLinearSection() {
           rows={4}
           spellCheck={false}
         />
-        <label className={styles.label} style={{ marginTop: '0.75rem' }}>Vector b (one entry per row of A; space or comma separated)</label>
+        <label className={styles.label} style={{ marginTop: '0.75rem' }}>
+          Vector b (length m; space or comma separated)
+        </label>
         <input
           type="text"
           className={styles.input}
@@ -218,31 +252,57 @@ export function SolveLinearSection() {
 
       {parseA.error && <p className={styles.error}>Matrix: {parseA.error}</p>}
       {parseB?.error && !parseA.error && <p className={styles.error}>{parseB.error}</p>}
-      {result?.error && !parseA.error && parseB && !parseB.error && (
-        <p className={styles.error}>{result.error}</p>
+
+      {result && result.kind === 'none' && (
+        <div className={styles.matrixBlock}>
+          <h4 className={styles.matrixTitle}>No solution</h4>
+          <p className={styles.matrixHint}>{result.message ?? 'System is inconsistent.'}</p>
+        </div>
       )}
 
-      {solution && parseA.matrix && parseB?.vec && (
+      {result && result.kind === 'unique' && (
         <>
           <div className={styles.matrixBlock}>
-            <h4 className={styles.matrixTitle}>Solution x</h4>
+            <h4 className={styles.matrixTitle}>Unique solution</h4>
             <p className={styles.matrixHint}>
-              x = [{solution.x.map((v) => fmt(v)).join(', ')}]
+              x = [{result.x.map((v) => fmt(v)).join(', ')}]
             </p>
             <p className={styles.matrixHint}>
-              Residual <span dangerouslySetInnerHTML={{ __html: tex('\\|A\\mathbf{x} - \\mathbf{b}\\|_2') }} /> = {solution.residual.toExponential(6)}
+              Residual <span dangerouslySetInnerHTML={{ __html: tex('\\|A\\mathbf{x} - \\mathbf{b}\\|_2') }} /> = {result.residual.toExponential(6)}
             </p>
           </div>
-          {is2x2 && parseB.vec && (
-            <div className={styles.matrixBlock}>
-              <h4 className={styles.matrixTitle}>2D view</h4>
-              <p className={styles.matrixHint}>
-                Row 1: <span dangerouslySetInnerHTML={{ __html: tex('A_{1,1}x_1 + A_{1,2}x_2 = b_1') }} /> (blue). Row 2 (green). Dot: solution.
-              </p>
-              <AxEqualsBViz A={parseA.matrix} b={parseB.vec} x={solution.x} />
-            </div>
-          )}
         </>
+      )}
+
+      {result && result.kind === 'infinite' && (
+        <>
+          <div className={styles.matrixBlock}>
+            <h4 className={styles.matrixTitle}>Infinitely many solutions</h4>
+            <p className={styles.matrixHint}>
+              Solution set: <span dangerouslySetInnerHTML={{ __html: tex('\\mathbf{x} = \\mathbf{p} + t_1\\mathbf{v}_1 + \\cdots') }} /> (free variables: {result.freeIndices.map((i) => `x${i + 1}`).join(', ')}).
+            </p>
+            <p className={styles.matrixHint}>
+              Particular: p = [{result.particular.map((v) => fmt(v)).join(', ')}]. Residual <span dangerouslySetInnerHTML={{ __html: tex('\\|A\\mathbf{p} - \\mathbf{b}\\|_2') }} /> = {result.residual.toExponential(6)}.
+            </p>
+            {result.basis.length > 0 && (
+              <p className={styles.matrixHint}>
+                Direction(s): {result.basis.map((v, i) => `v${i + 1} = (${v.map((a) => fmt(a)).join(', ')})`).join('; ')}.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+
+      {is2D && parseA.matrix && parseB?.vec && (
+        <div className={styles.matrixBlock}>
+          <h4 className={styles.matrixTitle}>2D view</h4>
+          <p className={styles.matrixHint}>
+            Each row of A gives a line <span dangerouslySetInnerHTML={{ __html: tex('A_{i,1}x_1 + A_{i,2}x_2 = b_i') }} />. {result?.kind === 'unique' && 'Dot: unique solution.'}
+            {result?.kind === 'infinite' && 'Thick line: solution set (particular + span of direction).'}
+            {result?.kind === 'none' && 'No common intersection.'}
+          </p>
+          <AxEqualsBViz A={parseA.matrix} b={parseB.vec} solution={vizSolution} />
+        </div>
       )}
     </div>
   )
