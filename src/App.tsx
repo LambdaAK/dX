@@ -29,6 +29,7 @@ import { MatrixFactorizationsSection } from '@/components/MatrixFactorizationsSe
 import { EigenvaluesSection } from '@/components/EigenvaluesSection'
 import { SolveLinearSection } from '@/components/SolveLinearSection'
 import { MatrixInverseSection } from '@/components/MatrixInverseSection'
+import { GradientDescentSection } from '@/components/GradientDescentSection'
 import styles from './App.module.css'
 
 function getInitialTheme(): 'light' | 'dark' {
@@ -66,6 +67,7 @@ export type AppPage =
   | 'eigenvalues'
   | 'solve-ax-b'
   | 'matrix-inverse'
+  | 'gradient-descent'
 
 export default function App() {
   const [page, setPage] = useState<AppPage>('home')
@@ -148,6 +150,7 @@ export default function App() {
             {page === 'eigenvalues' && <EigenvaluesSection />}
             {page === 'solve-ax-b' && <SolveLinearSection />}
             {page === 'matrix-inverse' && <MatrixInverseSection />}
+            {page === 'gradient-descent' && <GradientDescentSection />}
           </main>
         </>
       )}
