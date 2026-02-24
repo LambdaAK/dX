@@ -171,10 +171,20 @@ export function trainSVM(
     w2 += alpha[i] * Y[i] * X[i][1]
   }
 
-  const supportVectorIndices = alpha
-    .map((a, idx) => ({ a, idx }))
-    .filter(({ a }) => a > svTol)
-    .map(({ idx }) => idx)
+  // Detect support vectors using both conditions:
+  //   1. α_i > threshold  (meaningful dual variable)
+  //   2. y_i·(w·x_i + b) ≤ 1 + geomTol  (point lies on or inside the margin slab)
+  //
+  // Condition 2 filters out points whose alpha drifted above zero due to
+  // floating-point accumulation in the error cache but are geometrically
+  // well outside the margin and should have α = 0.
+  const geomTol = 0.1
+  const supportVectorIndices: number[] = []
+  for (let i = 0; i < n; i++) {
+    if (alpha[i] <= svTol) continue
+    const fi = w1 * X[i][0] + w2 * X[i][1] + b  // primal form, exact for linear kernel
+    if (Y[i] * fi <= 1 + geomTol) supportVectorIndices.push(i)
+  }
 
   const wNorm = Math.sqrt(w1 * w1 + w2 * w2)
   const margin = wNorm > 1e-10 ? 2 / wNorm : 0
