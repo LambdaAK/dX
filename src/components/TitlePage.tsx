@@ -59,7 +59,7 @@ const LABS: Lab[] = [
   { id: 'matrix-factorizations', category: 'Linear algebra', title: 'Matrix factorizations', description: 'LU, QR, Cholesky, SVD; factors and solve Ax = b' },
   { id: 'eigenvalues', category: 'Linear algebra', title: 'Eigenvalues & eigenvectors', description: '2×2 matrix; λ, v; unit circle → ellipse and eigenvector arrows' },
   { id: 'solve-ax-b', category: 'Linear algebra', title: 'Solve Ax = b', description: 'Linear system solver via RREF; solution, residual; 2D lines for 2×2' },
-  { id: 'matrix-inverse', category: 'Linear algebra', title: 'Matrix inverse', description: 'det(A) and A⁻¹ for square matrices; verify A·A⁻¹ = I' },
+  { id: 'matrix-inverse', category: 'Linear algebra', title: 'Matrix inverse', description: 'Left/right/two-sided inverses; injective, surjective, bijective; det and verify' },
   { id: 'pendulum', category: 'Physics', title: 'Pendulum', description: 'Phase portrait, time series, and animation' },
   { id: 'heat-equation-1d', category: 'Physics', title: '1D Heat Equation', description: '∂u/∂t = α∂²u/∂x²; graph u(x) over time' },
   { id: 'heat-equation', category: 'Physics', title: '2D Heat Equation', description: '∂u/∂t = α∇²u; finite-difference solver and heat map' },
