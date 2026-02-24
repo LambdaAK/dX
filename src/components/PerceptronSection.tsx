@@ -34,6 +34,58 @@ function renderLatex(latex: string, displayMode = false): string {
   }
 }
 
+const DEFAULT_CUSTOM =
+  `# x1, x2, label  (+1 or -1)
+ 1.2,  1.8, +1
+ 2.1,  0.7, +1
+ 0.5,  2.3, +1
+ 1.8,  2.5, +1
+-1.4, -0.8, -1
+-0.8, -2.1, -1
+ 0.2, -1.7, -1
+-2.0, -0.4, -1`
+
+/**
+ * Parse "x1, x2, label" text into DataPoint[].
+ * Labels +1/1 → +1 and -1/0 → -1. Any two other distinct strings:
+ * first seen → +1, second → -1.
+ * Returns null with an error message on failure.
+ */
+function parseCustomData(text: string): { pts: DataPoint[] } | { error: string } {
+  const rows: { x: number; y: number; raw: string }[] = []
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue
+    const parts = trimmed.split(/[\s,;]+/).filter(Boolean)
+    if (parts.length < 3) continue
+    const x = parseFloat(parts[0])
+    const y = parseFloat(parts[1])
+    if (!isFinite(x) || !isFinite(y)) continue
+    rows.push({ x, y, raw: parts[2] })
+  }
+
+  if (rows.length < 4) return { error: 'Need at least 4 valid rows (x1, x2, label).' }
+
+  const seen: string[] = []
+  for (const r of rows) if (!seen.includes(r.raw)) seen.push(r.raw)
+  if (seen.length < 2) return { error: 'Need exactly 2 distinct labels.' }
+  if (seen.length > 2) return { error: `Found ${seen.length} distinct labels — perceptron is binary only.` }
+
+  const [la, lb] = seen
+  // Honour common +1/-1 and 1/0 conventions
+  let aIs1 =
+    (['+1', '1'].includes(la) && ['-1', '0'].includes(lb)) ? true
+    : (['-1', '0'].includes(la) && ['+1', '1'].includes(lb)) ? false
+    : true  // arbitrary: first seen = +1
+
+  const pts: DataPoint[] = rows.map((r) => ({
+    x: r.x,
+    y: r.y,
+    label: (r.raw === la ? (aIs1 ? 1 : -1) : (aIs1 ? -1 : 1)) as 1 | -1,
+  }))
+  return { pts }
+}
+
 type Preset = 'blobs' | 'diagonal' | 'vertical' | 'wide-margin'
 
 const PRESETS: { id: Preset; label: string }[] = [
@@ -72,9 +124,20 @@ export function PerceptronSection() {
   const [data, setData] = useState<DataPoint[]>([])
   const [result, setResult] = useState<TrainResult | null>(null)
 
+  const [customInput, setCustomInput] = useState(DEFAULT_CUSTOM)
+  const [customError, setCustomError] = useState<string | null>(null)
+
   const [animEpoch, setAnimEpoch] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState<Speed>('medium')
+
+  const runWithData = (pts: DataPoint[]) => {
+    const res = train(pts, { learningRate, maxEpochs })
+    setData(pts)
+    setResult(res)
+    setAnimEpoch(0)
+    setIsPlaying(true)
+  }
 
   const handleRun = () => {
     const rand =
@@ -82,11 +145,17 @@ export function PerceptronSection() {
         ? createSeededRng(Number(seed))
         : Math.random
     const pts = generateDataset(preset, nPerClass, rand)
-    const res = train(pts, { learningRate, maxEpochs })
-    setData(pts)
-    setResult(res)
-    setAnimEpoch(0)
-    setIsPlaying(true)
+    runWithData(pts)
+  }
+
+  const handleCustomTrain = () => {
+    setCustomError(null)
+    const result = parseCustomData(customInput)
+    if ('error' in result) {
+      setCustomError(result.error)
+      return
+    }
+    runWithData(result.pts)
   }
 
   // Animation loop
@@ -265,6 +334,36 @@ export function PerceptronSection() {
           style={{ marginTop: '4px' }}
         >
           Generate &amp; train
+        </button>
+      </div>
+
+      {/* Custom data */}
+      <div className={styles.editorBlock}>
+        <h3 className={styles.optionsTitle}>Custom data</h3>
+        <p className={styles.hint}>
+          One point per line: <code>x₁, x₂, label</code> — labels can be{' '}
+          <code>+1</code> / <code>-1</code>, <code>1</code> / <code>0</code>, or any two
+          symbols. Lines starting with <code>#</code> are ignored. Uses the learning rate
+          and max epochs above.
+        </p>
+        <textarea
+          className={styles.textarea}
+          rows={9}
+          spellCheck={false}
+          value={customInput}
+          onChange={(e) => {
+            setCustomInput(e.target.value)
+            setCustomError(null)
+          }}
+        />
+        {customError && <p className={styles.error}>{customError}</p>}
+        <button
+          type="button"
+          className={styles.runBtn}
+          onClick={handleCustomTrain}
+          style={{ marginTop: '4px' }}
+        >
+          Train on custom data
         </button>
       </div>
 
