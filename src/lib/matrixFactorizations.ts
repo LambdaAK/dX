@@ -93,6 +93,54 @@ export function lu(A: number[][]): LUResult {
   return { P, L, U, pivot }
 }
 
+/** Sign of permutation (pivot indices): (-1)^(number of inversions). */
+function permutationSign(pivot: number[]): number {
+  let inversions = 0
+  for (let i = 0; i < pivot.length; i++)
+    for (let j = i + 1; j < pivot.length; j++)
+      if (pivot[i] > pivot[j]) inversions++
+  return inversions % 2 === 0 ? 1 : -1
+}
+
+/** Determinant of A from its LU factorization. Returns 0 if singular. */
+export function determinant(A: number[][]): number {
+  const n = A.length
+  if (n !== (A[0]?.length ?? 0)) return NaN
+  try {
+    const { U, pivot } = lu(A)
+    let prod = permutationSign(pivot)
+    for (let i = 0; i < n; i++) {
+      if (Math.abs(U[i][i]) < EPS) return 0
+      prod *= U[i][i]
+    }
+    return prod
+  } catch {
+    return 0
+  }
+}
+
+/** Inverse of square A via LU. Returns null if singular. */
+export function inverse(A: number[][]): number[][] | null {
+  const n = A.length
+  if (n !== (A[0]?.length ?? 0)) return null
+  try {
+    const luResult = lu(A)
+    for (let i = 0; i < n; i++)
+      if (Math.abs(luResult.U[i][i]) < EPS) return null
+    const inv: number[][] = Array.from({ length: n }, (_, i) =>
+      Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))
+    )
+    const cols: number[][] = []
+    for (let j = 0; j < n; j++) {
+      const b = inv.map((row) => row[j])
+      cols.push(solveLU(luResult, b))
+    }
+    return Array.from({ length: n }, (_, i) => cols.map((col) => col[i]))
+  } catch {
+    return null
+  }
+}
+
 /** Solve Ax = b using LU: solve L y = P b then U x = y. */
 export function solveLU(luResult: LUResult, b: number[]): number[] {
   const { P, L, U } = luResult

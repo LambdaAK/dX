@@ -28,6 +28,7 @@ import { SVMSection } from '@/components/SVMSection'
 import { MatrixFactorizationsSection } from '@/components/MatrixFactorizationsSection'
 import { EigenvaluesSection } from '@/components/EigenvaluesSection'
 import { SolveLinearSection } from '@/components/SolveLinearSection'
+import { MatrixInverseSection } from '@/components/MatrixInverseSection'
 import styles from './App.module.css'
 
 function getInitialTheme(): 'light' | 'dark' {
@@ -64,6 +65,7 @@ export type AppPage =
   | 'matrix-factorizations'
   | 'eigenvalues'
   | 'solve-ax-b'
+  | 'matrix-inverse'
 
 export default function App() {
   const [page, setPage] = useState<AppPage>('home')
@@ -145,6 +147,7 @@ export default function App() {
             {page === 'matrix-factorizations' && <MatrixFactorizationsSection />}
             {page === 'eigenvalues' && <EigenvaluesSection />}
             {page === 'solve-ax-b' && <SolveLinearSection />}
+            {page === 'matrix-inverse' && <MatrixInverseSection />}
           </main>
         </>
       )}
