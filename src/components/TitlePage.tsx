@@ -1,273 +1,139 @@
+import { useState, useMemo } from 'react'
 import styles from './TitlePage.module.css'
 
+export type SectionId =
+  | 'stochastic-pde'
+  | 'markov-chain'
+  | 'ctmc'
+  | 'bandit'
+  | 'lln'
+  | 'clt'
+  | 'rl'
+  | 'pendulum'
+  | 'linear-regression'
+  | 'logistic-regression'
+  | 'kmeans'
+  | 'dbscan'
+  | 'knn'
+  | 'decision-tree'
+  | 'bagging'
+  | 'boosting'
+  | 'pca'
+  | 'concentration-inequalities'
+  | 'simplex'
+  | 'perceptron'
+  | 'qp'
+
+type Lab = { id: SectionId; category: string; title: string; description: string }
+
+const LABS: Lab[] = [
+  { id: 'stochastic-pde', category: 'Math', title: 'Stochastic PDE', description: 'Simulate SDEs, view paths, statistics, and the Fokker–Planck density p(x, t)' },
+  { id: 'markov-chain', category: 'Math', title: 'Markov Chain', description: 'Discrete-time Markov chains with empirical trials and theoretical distributions' },
+  { id: 'ctmc', category: 'Math', title: 'CTMC', description: 'Continuous-time Markov chains with exponential holding times and rate matrices' },
+  { id: 'bandit', category: 'Math', title: 'Multi-Armed Bandits', description: 'Compare exploration strategies: ε-greedy, UCB, Thompson Sampling. Visualize regret over time' },
+  { id: 'lln', category: 'Math', title: 'Law of Large Numbers', description: 'See the sample average converge to the expected value for Bernoulli, Gaussian, or Uniform' },
+  { id: 'clt', category: 'Math', title: 'Central Limit Theorem', description: 'Histogram of sample means: see the distribution become normal as n grows' },
+  { id: 'rl', category: 'ML', title: 'Reinforcement Learning', description: 'MDPs and grid worlds: Value Iteration, Q-Learning, SARSA. Visualize policies and learning curves' },
+  { id: 'linear-regression', category: 'ML', title: 'Linear regression', description: 'OLS fit y = β₀ + β₁x. Paste data or generate synthetic; see scatter, fitted line, R² and residual SE' },
+  { id: 'logistic-regression', category: 'ML', title: 'Logistic regression', description: 'Binary classification: P(y=1|x) = σ(β₀ + β₁x). Paste x,y with y in {0,1} or generate synthetic; see sigmoid fit and loss' },
+  { id: 'kmeans', category: 'ML', title: 'K-Means', description: 'Cluster 2D points with K-Means. Generate blobs or random data, choose k, view clusters and centroids' },
+  { id: 'dbscan', category: 'ML', title: 'DBSCAN', description: 'Density-based clustering: set eps and minPts, no k needed. Finds clusters and labels outliers as noise' },
+  { id: 'knn', category: 'ML', title: 'K-Nearest Neighbors', description: 'Classify points by majority vote among k nearest neighbors. Try blobs, XOR, and circles' },
+  { id: 'decision-tree', category: 'ML', title: 'Decision tree', description: 'CART trees (Gini split). Add or paste x,y,label data; view the tree and decision boundary' },
+  { id: 'bagging', category: 'ML', title: 'Bagging (trees)', description: 'Ensemble of decision trees trained on bootstrap samples. Compare the bagged decision boundary to a single tree' },
+  { id: 'boosting', category: 'ML', title: 'Boosting (trees)', description: 'Sequential ensemble of decision trees; each tree focuses on previous errors. AdaBoost-style weighted vote and decision boundary' },
+  { id: 'perceptron', category: 'ML', title: 'Perceptron', description: 'The simplest linear classifier: ŷ = sign(w·x + b). Online weight updates, convergence theorem, 2D decision boundary' },
+  { id: 'pca', category: 'ML', title: 'PCA', description: 'Principal Component Analysis: reduce ℝⁿ → ℝ² via covariance eigendecomposition, visualise projection, and reconstruct with MSE' },
+  { id: 'concentration-inequalities', category: 'Math', title: 'Concentration Inequalities', description: 'Markov, Chebyshev, Hoeffding, and Sub-Gaussian bounds: see theoretical bounds vs empirical tail probabilities' },
+  { id: 'simplex', category: 'Optimization', title: 'Linear Program Solver', description: 'Solve min/max cᵀx s.t. Ax ≤ b, x ≥ 0. Big-M method for ≥ and = constraints. Visualise the feasible polytope and optimal vertex for 2-variable problems' },
+  { id: 'qp', category: 'Optimization', title: 'Quadratic Program Solver', description: 'Solve min ½xᵀQx + cᵀx s.t. Ax ≤ b, x ≥ 0. Active-set method with KKT conditions. Visualise the feasible region and optimal point for 2-variable problems' },
+  { id: 'pendulum', category: 'Physics', title: 'Pendulum', description: 'Simple and damped pendulum: θ″ = −(g/L) sin θ − b θ′. Phase portrait, time series, and animation' },
+]
+
 type Props = {
-  onSelect: (
-    section:
-      | 'stochastic-pde'
-      | 'markov-chain'
-      | 'ctmc'
-      | 'bandit'
-      | 'lln'
-      | 'clt'
-      | 'rl'
-      | 'pendulum'
-      | 'linear-regression'
-      | 'logistic-regression'
-      | 'kmeans'
-      | 'dbscan'
-      | 'knn'
-      | 'decision-tree'
-      | 'bagging'
-      | 'boosting'
-      | 'pca'
-      | 'concentration-inequalities'
-      | 'simplex'
-      | 'perceptron'
-      | 'qp'
-  ) => void
+  onSelect: (section: SectionId) => void
+}
+
+function matchQuery(lab: Lab, q: string): boolean {
+  if (!q.trim()) return true
+  const lower = q.toLowerCase().trim()
+  const text = `${lab.category} ${lab.title} ${lab.description}`.toLowerCase()
+  return text.includes(lower)
 }
 
 export function TitlePage({ onSelect }: Props) {
+  const [query, setQuery] = useState('')
+  const [categoryOpen, setCategoryOpen] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries([...new Set(LABS.map((l) => l.category))].map((c) => [c, true]))
+  )
+
+  const byCategory = useMemo(() => {
+    const filtered = query.trim() ? LABS.filter((l) => matchQuery(l, query)) : LABS
+    const map = new Map<string, Lab[]>()
+    for (const lab of filtered) {
+      const list = map.get(lab.category) ?? []
+      list.push(lab)
+      map.set(lab.category, list)
+    }
+    const order = ['Math', 'ML', 'Optimization', 'Physics']
+    return order.filter((c) => map.has(c)).map((c) => ({ category: c, labs: map.get(c)! }))
+  }, [query])
+
+  const toggleCategory = (category: string) => {
+    setCategoryOpen((prev) => ({ ...prev, [category]: !prev[category] }))
+  }
+
   return (
     <div className={styles.page}>
       <span className={styles.logoWrap}>
         <img src="/logo.png" alt="dX logo" className={styles.logo} />
       </span>
       <h1 className={styles.title}>Math & ML Lab</h1>
-      <div className={styles.choices}>
-        <section className={styles.category}>
-          <h2 className={styles.categoryTitle}>Math</h2>
-          <div className={styles.categoryCards}>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('stochastic-pde')}
-            >
-              <span className={styles.cardTitle}>Stochastic PDE</span>
-              <span className={styles.cardDesc}>
-                Simulate SDEs, view paths, statistics, and the Fokker–Planck density p(x, t)
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('markov-chain')}
-            >
-              <span className={styles.cardTitle}>Markov Chain</span>
-              <span className={styles.cardDesc}>
-                Discrete-time Markov chains with empirical trials and theoretical distributions
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('ctmc')}
-            >
-              <span className={styles.cardTitle}>CTMC</span>
-              <span className={styles.cardDesc}>
-                Continuous-time Markov chains with exponential holding times and rate matrices
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('bandit')}
-            >
-              <span className={styles.cardTitle}>Multi-Armed Bandits</span>
-              <span className={styles.cardDesc}>
-                Compare exploration strategies: ε-greedy, UCB, Thompson Sampling. Visualize regret over time
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('lln')}
-            >
-              <span className={styles.cardTitle}>Law of Large Numbers</span>
-              <span className={styles.cardDesc}>
-                See the sample average converge to the expected value for Bernoulli, Gaussian, or Uniform
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('clt')}
-            >
-              <span className={styles.cardTitle}>Central Limit Theorem</span>
-              <span className={styles.cardDesc}>
-                Histogram of sample means: see the distribution become normal as n grows
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('rl')}
-            >
-              <span className={styles.cardTitle}>Reinforcement Learning</span>
-              <span className={styles.cardDesc}>
-                MDPs and grid worlds: Value Iteration, Q-Learning, SARSA. Visualize policies and learning curves
-              </span>
-            </button>
-          </div>
-        </section>
-        <section className={styles.category}>
-          <h2 className={styles.categoryTitle}>ML</h2>
-          <div className={styles.categoryCards}>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('linear-regression')}
-            >
-              <span className={styles.cardTitle}>Linear regression</span>
-              <span className={styles.cardDesc}>
-                OLS fit y = β₀ + β₁x. Paste data or generate synthetic; see scatter, fitted line, R² and residual SE
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('logistic-regression')}
-            >
-              <span className={styles.cardTitle}>Logistic regression</span>
-              <span className={styles.cardDesc}>
-                Binary classification: P(y=1|x) = σ(β₀ + β₁x). Paste x,y with y in {'{0,1}'} or generate synthetic; see sigmoid fit and loss
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('kmeans')}
-            >
-              <span className={styles.cardTitle}>K-Means</span>
-              <span className={styles.cardDesc}>
-                Cluster 2D points with K-Means. Generate blobs or random data, choose k, view clusters and centroids
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('dbscan')}
-            >
-              <span className={styles.cardTitle}>DBSCAN</span>
-              <span className={styles.cardDesc}>
-                Density-based clustering: set eps and minPts, no k needed. Finds clusters and labels outliers as noise
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('knn')}
-            >
-              <span className={styles.cardTitle}>K-Nearest Neighbors</span>
-              <span className={styles.cardDesc}>
-                Classify points by majority vote among k nearest neighbors. Try blobs, XOR, and circles
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('decision-tree')}
-            >
-              <span className={styles.cardTitle}>Decision tree</span>
-              <span className={styles.cardDesc}>
-                CART trees (Gini split). Add or paste x,y,label data; view the tree and decision boundary
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('bagging')}
-            >
-              <span className={styles.cardTitle}>Bagging (trees)</span>
-              <span className={styles.cardDesc}>
-                Ensemble of decision trees trained on bootstrap samples. Compare the bagged decision boundary to a single tree
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('boosting')}
-            >
-              <span className={styles.cardTitle}>Boosting (trees)</span>
-              <span className={styles.cardDesc}>
-                Sequential ensemble of decision trees; each tree focuses on previous errors. AdaBoost-style weighted vote and decision boundary
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('perceptron')}
-            >
-              <span className={styles.cardTitle}>Perceptron</span>
-              <span className={styles.cardDesc}>
-                The simplest linear classifier: ŷ = sign(w·x + b). Online weight updates, convergence theorem, 2D decision boundary
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('pca')}
-            >
-              <span className={styles.cardTitle}>PCA</span>
-              <span className={styles.cardDesc}>
-                Principal Component Analysis: reduce ℝⁿ → ℝ² via covariance eigendecomposition, visualise projection, and reconstruct with MSE
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('concentration-inequalities')}
-            >
-              <span className={styles.cardTitle}>Concentration Inequalities</span>
-              <span className={styles.cardDesc}>
-                Markov, Chebyshev, Hoeffding, and Sub-Gaussian bounds: see theoretical bounds vs empirical tail probabilities
-              </span>
-            </button>
-          </div>
-        </section>
-        <section className={styles.category}>
-          <h2 className={styles.categoryTitle}>Optimization</h2>
-          <div className={styles.categoryCards}>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('simplex')}
-            >
-              <span className={styles.cardTitle}>Linear Program Solver</span>
-              <span className={styles.cardDesc}>
-                Solve min/max c&#x1D40;x s.t. Ax ≤ b, x ≥ 0. Big-M method for ≥ and = constraints.
-                Visualise the feasible polytope and optimal vertex for 2-variable problems
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('qp')}
-            >
-              <span className={styles.cardTitle}>Quadratic Program Solver</span>
-              <span className={styles.cardDesc}>
-                Solve min ½x&#x1D40;Qx + c&#x1D40;x s.t. Ax ≤ b, x ≥ 0. Active-set method with KKT conditions.
-                Visualise the feasible region and optimal point for 2-variable problems
-              </span>
-            </button>
-          </div>
-        </section>
-        <section className={styles.category}>
-          <h2 className={styles.categoryTitle}>Physics</h2>
-          <div className={styles.categoryCards}>
-            <button
-              type="button"
-              className={styles.card}
-              onClick={() => onSelect('pendulum')}
-            >
-              <span className={styles.cardTitle}>Pendulum</span>
-              <span className={styles.cardDesc}>
-                Simple and damped pendulum: θ″ = −(g/L) sin θ − b θ′. Phase portrait, time series, and animation
-              </span>
-            </button>
-          </div>
-        </section>
+      <div className={styles.searchWrap}>
+        <input
+          type="search"
+          className={styles.search}
+          placeholder="Search labs…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search labs"
+        />
       </div>
+      <div className={styles.choices}>
+        {byCategory.map(({ category, labs }) => (
+          <section key={category} className={styles.category}>
+            <button
+              type="button"
+              className={styles.categoryHeader}
+              onClick={() => toggleCategory(category)}
+              aria-expanded={categoryOpen[category]}
+            >
+              <h2 className={styles.categoryTitle}>{category}</h2>
+              <span className={styles.categoryChevron} aria-hidden>
+                {categoryOpen[category] ? '▼' : '▶'}
+              </span>
+            </button>
+            {categoryOpen[category] && (
+              <div className={styles.categoryCards}>
+                {labs.map((lab) => (
+                  <button
+                    key={lab.id}
+                    type="button"
+                    className={styles.card}
+                    onClick={() => onSelect(lab.id)}
+                  >
+                    <span className={styles.cardTitle}>{lab.title}</span>
+                    <span className={styles.cardDesc}>{lab.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+      {byCategory.length === 0 && (
+        <p className={styles.noResults}>No labs match “{query}”. Try a different search.</p>
+      )}
     </div>
   )
 }

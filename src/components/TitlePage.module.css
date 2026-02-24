@@ -35,6 +35,33 @@
   line-height: 1.2;
 }
 
+.searchWrap {
+  width: 100%;
+  max-width: 960px;
+  margin-top: 1rem;
+}
+
+.search {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search::placeholder {
+  color: var(--text-muted);
+}
+
+.search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.15);
+}
+
 .choices {
   display: flex;
   flex-direction: column;
@@ -54,6 +81,29 @@
   width: 100%;
 }
 
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.25rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.categoryHeader:hover .categoryTitle {
+  color: var(--text);
+}
+
+.categoryChevron {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .categoryTitle {
   margin: 0;
   font-size: 1rem;
@@ -61,6 +111,12 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.noResults {
+  margin: 1.5rem 0 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
 }
 
 .categoryCards {
