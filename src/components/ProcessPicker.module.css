@@ -4,12 +4,12 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
+  padding: 1.5rem 1.75rem;
   box-shadow: var(--glass-shadow);
 }
 
 .heading {
-  margin: 0 0 1rem;
+  margin: 0 0 1.25rem;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
@@ -17,8 +17,8 @@
 
 .modeTabs {
   display: flex;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .tab,
@@ -46,14 +46,14 @@
 .cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
 }
 
 .card,
 .cardActive {
   text-align: left;
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1.125rem;
   border-radius: var(--radius);
   border: 1px solid var(--glass-border);
   background: var(--glass-bg-strong);
@@ -92,8 +92,8 @@
 }
 
 .about {
-  margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
   background: var(--bg-input);
   border-radius: 8px;
   border-left: 3px solid var(--accent);
@@ -102,21 +102,21 @@
 .aboutText {
   margin: 0;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--text-muted);
 }
 
 .custom {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .label {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
   font-size: 0.9rem;
   color: var(--text-muted);
 }
@@ -164,17 +164,17 @@
 }
 
 .initial {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .params {
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
   border-top: 1px solid var(--border);
 }
 
 .subheading {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1rem;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -183,8 +183,12 @@
 .paramRow {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  gap: 0.875rem;
+  margin-bottom: 0.875rem;
+}
+
+.paramRow:last-child {
+  margin-bottom: 0;
 }
 
 .paramName {
