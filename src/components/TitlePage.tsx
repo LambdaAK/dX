@@ -19,6 +19,7 @@ type Props = {
       | 'decision-tree'
       | 'bagging'
       | 'boosting'
+      | 'pca'
   ) => void
 }
 
@@ -186,6 +187,16 @@ export function TitlePage({ onSelect }: Props) {
               <span className={styles.cardTitle}>Boosting (trees)</span>
               <span className={styles.cardDesc}>
                 Sequential ensemble of decision trees; each tree focuses on previous errors. AdaBoost-style weighted vote and decision boundary
+              </span>
+            </button>
+            <button
+              type="button"
+              className={styles.card}
+              onClick={() => onSelect('pca')}
+            >
+              <span className={styles.cardTitle}>PCA</span>
+              <span className={styles.cardDesc}>
+                Principal Component Analysis: reduce ℝⁿ → ℝ² via covariance eigendecomposition, visualise projection, and reconstruct with MSE
               </span>
             </button>
           </div>
