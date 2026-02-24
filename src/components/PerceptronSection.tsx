@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import {
@@ -14,6 +14,7 @@ import {
   Legend,
   LineChart,
   ReferenceLine,
+  Cell,
 } from 'recharts'
 import {
   train,
@@ -42,11 +43,25 @@ const PRESETS: { id: Preset; label: string }[] = [
   { id: 'wide-margin', label: 'Wide margin' },
 ]
 
-const DOMAIN = { xMin: -4, xMax: 4, yMin: -4, yMax: 4 }
+const SPEEDS = { slow: 900, medium: 350, fast: 100 } as const
+type Speed = keyof typeof SPEEDS
 
+const DOMAIN = { xMin: -4, xMax: 4, yMin: -4, yMax: 4 }
 const COLOR_POS = 'var(--accent)'
 const COLOR_NEG = '#0ea5e9'
 const COLOR_BOUNDARY = '#f97316'
+const COLOR_WRONG = '#ef4444'
+
+const btnBase: React.CSSProperties = {
+  padding: '0.3rem 0.6rem',
+  fontSize: '1.05rem',
+  lineHeight: 1,
+  background: 'var(--glass-bg)',
+  color: 'var(--text)',
+  border: '1px solid var(--glass-border)',
+  borderRadius: 'var(--radius)',
+  cursor: 'pointer',
+}
 
 export function PerceptronSection() {
   const [preset, setPreset] = useState<Preset>('blobs')
@@ -57,38 +72,90 @@ export function PerceptronSection() {
   const [data, setData] = useState<DataPoint[]>([])
   const [result, setResult] = useState<TrainResult | null>(null)
 
+  const [animEpoch, setAnimEpoch] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [speed, setSpeed] = useState<Speed>('medium')
+
   const handleRun = () => {
     const rand =
       seed.trim() !== '' && !Number.isNaN(Number(seed))
         ? createSeededRng(Number(seed))
         : Math.random
     const pts = generateDataset(preset, nPerClass, rand)
-    setData(pts)
     const res = train(pts, { learningRate, maxEpochs })
+    setData(pts)
     setResult(res)
+    setAnimEpoch(0)
+    setIsPlaying(true)
   }
+
+  // Animation loop
+  useEffect(() => {
+    if (!isPlaying || !result) return
+    const timer = setInterval(() => {
+      setAnimEpoch((prev) => {
+        if (prev >= result.epochs) {
+          setIsPlaying(false)
+          return prev
+        }
+        return prev + 1
+      })
+    }, SPEEDS[speed])
+    return () => clearInterval(timer)
+  }, [isPlaying, result, speed])
 
   const pos = useMemo(() => data.filter((p) => p.label === 1), [data])
   const neg = useMemo(() => data.filter((p) => p.label === -1), [data])
 
-  const boundary = useMemo(() => {
-    if (!result) return []
-    return boundaryLine(result.model, DOMAIN.xMin, DOMAIN.xMax, DOMAIN.yMin, DOMAIN.yMax)
-  }, [result])
+  const currentModel = useMemo(
+    () => result?.snapshots[animEpoch] ?? null,
+    [result, animEpoch]
+  )
 
-  const accuracy = useMemo(() => {
-    if (!result || data.length === 0) return null
-    let correct = 0
-    for (const pt of data) {
-      const pred =
-        result.model.w1 * pt.x + result.model.w2 * pt.y + result.model.b >= 0 ? 1 : -1
-      if (pred === pt.label) correct++
+  // Which points in pos/neg are misclassified under the current model
+  const misclassifiedPos = useMemo(() => {
+    if (!currentModel) return new Set<number>()
+    const s = new Set<number>()
+    pos.forEach((pt, i) => {
+      if (currentModel.w1 * pt.x + currentModel.w2 * pt.y + currentModel.b < 0) s.add(i)
+    })
+    return s
+  }, [currentModel, pos])
+
+  const misclassifiedNeg = useMemo(() => {
+    if (!currentModel) return new Set<number>()
+    const s = new Set<number>()
+    neg.forEach((pt, i) => {
+      if (currentModel.w1 * pt.x + currentModel.w2 * pt.y + currentModel.b >= 0) s.add(i)
+    })
+    return s
+  }, [currentModel, neg])
+
+  const currentErrors = misclassifiedPos.size + misclassifiedNeg.size
+
+  const boundary = useMemo(() => {
+    if (!currentModel) return []
+    return boundaryLine(currentModel, DOMAIN.xMin, DOMAIN.xMax, DOMAIN.yMin, DOMAIN.yMax)
+  }, [currentModel])
+
+  const handlePlayPause = () => {
+    if (!result) return
+    if (!isPlaying && animEpoch >= result.epochs) {
+      setAnimEpoch(0)
+      setIsPlaying(true)
+    } else {
+      setIsPlaying((p) => !p)
     }
-    return (correct / data.length) * 100
-  }, [result, data])
+  }
+
+  const epochStatusText =
+    animEpoch === 0
+      ? 'Epoch 0 — untrained'
+      : `Epoch ${animEpoch} / ${result?.epochs ?? '?'} — ${currentErrors} misclassified`
 
   return (
     <div className={styles.section}>
+      {/* Intro */}
       <div className={styles.intro}>
         <p className={styles.introText}>
           <strong>Perceptron</strong> is the simplest linear binary classifier. It learns a
@@ -110,13 +177,14 @@ export function PerceptronSection() {
           }}
         />
         <p className={styles.introText}>
-          By Rosenblatt's convergence theorem, training is guaranteed to converge in finite
-          steps if (and only if) the data is linearly separable.
+          By Rosenblatt's convergence theorem, training is guaranteed to converge in finite steps
+          if (and only if) the data is linearly separable.
         </p>
       </div>
 
+      {/* Controls */}
       <div className={styles.editorBlock}>
-        <h3 className={styles.optionsTitle}>Dataset & training</h3>
+        <h3 className={styles.optionsTitle}>Dataset &amp; training</h3>
         <div
           style={{
             display: 'grid',
@@ -173,7 +241,9 @@ export function PerceptronSection() {
               max={1000}
               step={10}
               value={maxEpochs}
-              onChange={(e) => setMaxEpochs(Math.max(1, Math.min(1000, Number(e.target.value))))}
+              onChange={(e) =>
+                setMaxEpochs(Math.max(1, Math.min(1000, Number(e.target.value))))
+              }
               className={styles.input}
             />
           </label>
@@ -188,16 +258,139 @@ export function PerceptronSection() {
             />
           </label>
         </div>
-        <button type="button" className={styles.runBtn} onClick={handleRun} style={{ marginTop: '4px' }}>
+        <button
+          type="button"
+          className={styles.runBtn}
+          onClick={handleRun}
+          style={{ marginTop: '4px' }}
+        >
           Generate &amp; train
         </button>
       </div>
 
       {result && data.length > 0 && (
         <>
+          {/* Decision boundary chart */}
           <div className={styles.graphBlock}>
-            <h3 className={styles.graphTitle}>Decision boundary</h3>
-            <ResponsiveContainer width="100%" height={420}>
+            {/* Title row */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              <h3 className={styles.graphTitle}>Decision boundary</h3>
+              <span
+                className={styles.hint}
+                style={{ fontVariantNumeric: 'tabular-nums', color: animEpoch === 0 ? 'var(--text-muted)' : currentErrors === 0 ? '#22c55e' : COLOR_WRONG }}
+              >
+                {epochStatusText}
+              </span>
+            </div>
+
+            {/* Animation controls */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexWrap: 'wrap',
+              }}
+            >
+              {/* Step buttons */}
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  style={btnBase}
+                  onClick={() => {
+                    setIsPlaying(false)
+                    setAnimEpoch(0)
+                  }}
+                  title="First epoch"
+                >
+                  ⏮
+                </button>
+                <button
+                  type="button"
+                  style={btnBase}
+                  onClick={() => {
+                    setIsPlaying(false)
+                    setAnimEpoch((p) => Math.max(0, p - 1))
+                  }}
+                  title="Previous epoch"
+                >
+                  ⏪
+                </button>
+                <button
+                  type="button"
+                  className={styles.runBtn}
+                  style={{ padding: '0.3rem 0.85rem', fontSize: '1.1rem', lineHeight: 1, minWidth: '2.5rem' }}
+                  onClick={handlePlayPause}
+                  title={isPlaying ? 'Pause' : 'Play'}
+                >
+                  {isPlaying ? '⏸' : '▶'}
+                </button>
+                <button
+                  type="button"
+                  style={btnBase}
+                  onClick={() => {
+                    setIsPlaying(false)
+                    setAnimEpoch((p) => Math.min(result.epochs, p + 1))
+                  }}
+                  title="Next epoch"
+                >
+                  ⏩
+                </button>
+                <button
+                  type="button"
+                  style={btnBase}
+                  onClick={() => {
+                    setIsPlaying(false)
+                    setAnimEpoch(result.epochs)
+                  }}
+                  title="Last epoch"
+                >
+                  ⏭
+                </button>
+              </div>
+
+              {/* Scrubber */}
+              <input
+                type="range"
+                min={0}
+                max={result.epochs}
+                value={animEpoch}
+                onChange={(e) => {
+                  setIsPlaying(false)
+                  setAnimEpoch(Number(e.target.value))
+                }}
+                style={{ flex: '1', minWidth: '100px' }}
+              />
+
+              {/* Speed */}
+              <label
+                className={styles.fieldLabel}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: '6px' }}
+              >
+                <span>Speed</span>
+                <select
+                  className={styles.input}
+                  style={{ minWidth: '80px' }}
+                  value={speed}
+                  onChange={(e) => setSpeed(e.target.value as Speed)}
+                >
+                  <option value="slow">Slow</option>
+                  <option value="medium">Medium</option>
+                  <option value="fast">Fast</option>
+                </select>
+              </label>
+            </div>
+
+            {/* Scatter + boundary */}
+            <ResponsiveContainer width="100%" height={400}>
               <ComposedChart margin={{ top: 16, right: 16, left: 0, bottom: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
@@ -206,7 +399,13 @@ export function PerceptronSection() {
                   domain={[DOMAIN.xMin, DOMAIN.xMax]}
                   stroke="var(--text-muted)"
                   tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-                  label={{ value: 'x₁', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)', fontSize: 12 }}
+                  label={{
+                    value: 'x₁',
+                    position: 'insideBottom',
+                    offset: -4,
+                    fill: 'var(--text-muted)',
+                    fontSize: 12,
+                  }}
                 />
                 <YAxis
                   type="number"
@@ -214,9 +413,15 @@ export function PerceptronSection() {
                   domain={[DOMAIN.yMin, DOMAIN.yMax]}
                   stroke="var(--text-muted)"
                   tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-                  label={{ value: 'x₂', angle: -90, position: 'insideLeft', fill: 'var(--text-muted)', fontSize: 12 }}
+                  label={{
+                    value: 'x₂',
+                    angle: -90,
+                    position: 'insideLeft',
+                    fill: 'var(--text-muted)',
+                    fontSize: 12,
+                  }}
                 />
-                <ZAxis range={[50, 50]} />
+                <ZAxis range={[55, 55]} />
                 <Tooltip
                   cursor={{ stroke: 'var(--border)' }}
                   contentStyle={{
@@ -231,18 +436,28 @@ export function PerceptronSection() {
                       : ''
                   }
                 />
-                <Scatter
-                  name="+1"
-                  data={pos}
-                  fill={COLOR_POS}
-                  isAnimationActive={false}
-                />
-                <Scatter
-                  name="−1"
-                  data={neg}
-                  fill={COLOR_NEG}
-                  isAnimationActive={false}
-                />
+                {/* +1 class — misclassified shown as hollow red circles */}
+                <Scatter name="+1" data={pos} isAnimationActive={false}>
+                  {pos.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={misclassifiedPos.has(i) ? 'transparent' : COLOR_POS}
+                      stroke={misclassifiedPos.has(i) ? COLOR_WRONG : COLOR_POS}
+                      strokeWidth={misclassifiedPos.has(i) ? 2 : 1}
+                    />
+                  ))}
+                </Scatter>
+                {/* −1 class — misclassified shown as hollow red circles */}
+                <Scatter name="−1" data={neg} isAnimationActive={false}>
+                  {neg.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={misclassifiedNeg.has(i) ? 'transparent' : COLOR_NEG}
+                      stroke={misclassifiedNeg.has(i) ? COLOR_WRONG : COLOR_NEG}
+                      strokeWidth={misclassifiedNeg.has(i) ? 2 : 1}
+                    />
+                  ))}
+                </Scatter>
                 {boundary.length === 2 && (
                   <Line
                     name="Boundary"
@@ -261,40 +476,53 @@ export function PerceptronSection() {
             </ResponsiveContainer>
           </div>
 
+          {/* Weights table */}
           <div className={styles.matrixBlock}>
-            <h4 className={styles.matrixTitle}>Training results</h4>
+            <h4 className={styles.matrixTitle}>
+              Model weights — {animEpoch === 0 ? 'initial (untrained)' : `epoch ${animEpoch}`}
+            </h4>
             <div className={styles.matrixWrap}>
               <table className={styles.matrixTable}>
                 <tbody>
                   <tr>
                     <th className={styles.matrixRowHeader}>w₁</th>
-                    <td className={styles.matrixCell}>{result.model.w1.toFixed(4)}</td>
+                    <td className={styles.matrixCell}>
+                      {currentModel?.w1.toFixed(4) ?? '—'}
+                    </td>
                   </tr>
                   <tr>
                     <th className={styles.matrixRowHeader}>w₂</th>
-                    <td className={styles.matrixCell}>{result.model.w2.toFixed(4)}</td>
+                    <td className={styles.matrixCell}>
+                      {currentModel?.w2.toFixed(4) ?? '—'}
+                    </td>
                   </tr>
                   <tr>
                     <th className={styles.matrixRowHeader}>bias b</th>
-                    <td className={styles.matrixCell}>{result.model.b.toFixed(4)}</td>
-                  </tr>
-                  <tr>
-                    <th className={styles.matrixRowHeader}>Epochs run</th>
-                    <td className={styles.matrixCell}>{result.epochs}</td>
-                  </tr>
-                  <tr>
-                    <th className={styles.matrixRowHeader}>Training accuracy</th>
                     <td className={styles.matrixCell}>
-                      {accuracy !== null ? `${accuracy.toFixed(1)}%` : '—'}
+                      {currentModel?.b.toFixed(4) ?? '—'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className={styles.matrixRowHeader}>Misclassified</th>
+                    <td className={styles.matrixCell}>
+                      {currentErrors} / {data.length}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className={styles.matrixRowHeader}>Accuracy</th>
+                    <td className={styles.matrixCell}>
+                      {data.length > 0
+                        ? `${(((data.length - currentErrors) / data.length) * 100).toFixed(1)}%`
+                        : '—'}
                     </td>
                   </tr>
                   <tr>
                     <th className={styles.matrixRowHeader}>Converged</th>
                     <td
                       className={styles.matrixCell}
-                      style={{ color: result.converged ? '#22c55e' : '#ef4444' }}
+                      style={{ color: result.converged ? '#22c55e' : 'var(--text-muted)' }}
                     >
-                      {result.converged ? 'Yes' : 'No (cycling)'}
+                      {result.converged ? `Yes (epoch ${result.epochs})` : 'No'}
                     </td>
                   </tr>
                 </tbody>
@@ -307,10 +535,11 @@ export function PerceptronSection() {
             )}
           </div>
 
+          {/* Error-per-epoch chart */}
           {result.history.length > 1 && (
             <div className={styles.graphBlock}>
               <h3 className={styles.graphTitle}>Misclassifications per epoch</h3>
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={200}>
                 <LineChart
                   data={result.history}
                   margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
@@ -320,13 +549,25 @@ export function PerceptronSection() {
                     dataKey="epoch"
                     stroke="var(--text-muted)"
                     tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-                    label={{ value: 'Epoch', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)', fontSize: 12 }}
+                    label={{
+                      value: 'Epoch',
+                      position: 'insideBottom',
+                      offset: -4,
+                      fill: 'var(--text-muted)',
+                      fontSize: 12,
+                    }}
                   />
                   <YAxis
                     stroke="var(--text-muted)"
                     tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
                     allowDecimals={false}
-                    label={{ value: 'Errors', angle: -90, position: 'insideLeft', fill: 'var(--text-muted)', fontSize: 12 }}
+                    label={{
+                      value: 'Errors',
+                      angle: -90,
+                      position: 'insideLeft',
+                      fill: 'var(--text-muted)',
+                      fontSize: 12,
+                    }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -338,6 +579,20 @@ export function PerceptronSection() {
                     labelFormatter={(l) => `Epoch ${l}`}
                   />
                   <ReferenceLine y={0} stroke="var(--border)" strokeDasharray="2 2" />
+                  {/* Cursor tracking current animation epoch */}
+                  {animEpoch > 0 && (
+                    <ReferenceLine
+                      x={animEpoch}
+                      stroke="var(--accent)"
+                      strokeWidth={2}
+                      label={{
+                        value: `${animEpoch}`,
+                        position: 'top',
+                        fill: 'var(--accent)',
+                        fontSize: 11,
+                      }}
+                    />
+                  )}
                   <Line
                     type="monotone"
                     dataKey="errors"

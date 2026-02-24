@@ -22,6 +22,8 @@ export type TrainResult = {
   epochs: number
   history: TrainHistory[]
   converged: boolean
+  /** Model weights after each epoch. snapshots[0] = initial (all zeros), snapshots[k] = after epoch k. */
+  snapshots: PerceptronModel[]
 }
 
 export type DataPoint = {
@@ -51,6 +53,7 @@ export function train(
   let b = 0
 
   const history: TrainHistory[] = []
+  const snapshots: PerceptronModel[] = [{ w1: 0, w2: 0, b: 0 }]
 
   for (let epoch = 1; epoch <= maxEpochs; epoch++) {
     let errors = 0
@@ -64,12 +67,13 @@ export function train(
       }
     }
     history.push({ epoch, errors })
+    snapshots.push({ w1, w2, b })
     if (errors === 0) break
   }
 
   const converged = history[history.length - 1]?.errors === 0
 
-  return { model: { w1, w2, b }, epochs: history.length, history, converged }
+  return { model: { w1, w2, b }, epochs: history.length, history, converged, snapshots }
 }
 
 /**
