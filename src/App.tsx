@@ -165,7 +165,7 @@ export default function App() {
                 className={page === 'rl' ? styles.navBtnActive : styles.navBtn}
                 onClick={() => navigate('rl')}
               >
-                RL
+                MDP
               </button>
               <button
                 type="button"
