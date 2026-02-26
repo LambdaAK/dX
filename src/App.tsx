@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TitlePage } from '@/components/TitlePage'
 import { StochasticPdeSection } from '@/components/StochasticPdeSection'
 import { MarkovChainSection } from '@/components/MarkovChainSection'
@@ -69,9 +69,74 @@ export type AppPage =
   | 'matrix-inverse'
   | 'gradient-descent'
 
+function getInitialPage(): AppPage {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  if (path === '/' || path === '/index.html') {
+    return 'home'
+  }
+  if (path.startsWith('/lab/')) {
+    const id = path.slice('/lab/'.length) as AppPage
+    const validPages: AppPage[] = [
+      'home',
+      'stochastic-pde',
+      'markov-chain',
+      'ctmc',
+      'bandit',
+      'lln',
+      'clt',
+      'rl',
+      'pendulum',
+      'linear-regression',
+      'logistic-regression',
+      'kmeans',
+      'dbscan',
+      'knn',
+      'decision-tree',
+      'bagging',
+      'boosting',
+      'pca',
+      'concentration-inequalities',
+      'simplex',
+      'perceptron',
+      'qp',
+      'svm',
+      'heat-equation',
+      'heat-equation-1d',
+      'heat-equation-3d',
+      'matrix-factorizations',
+      'eigenvalues',
+      'solve-ax-b',
+      'matrix-inverse',
+      'gradient-descent',
+    ]
+    if (validPages.includes(id)) {
+      return id
+    }
+  }
+  return 'home'
+}
+
 export default function App() {
-  const [page, setPage] = useState<AppPage>('home')
+  const [page, setPage] = useState<AppPage>(getInitialPage)
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme)
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setPage(getInitialPage())
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
+
+  function navigate(next: AppPage) {
+    setPage(next)
+    const path = next === 'home' ? '/' : `/lab/${next}`
+    if (window.location.pathname !== path) {
+      window.history.pushState({ page: next }, '', path)
+    }
+  }
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -97,7 +162,7 @@ export default function App() {
             {theme === 'dark' ? '☀' : '🌙'}
           </button>
           <main className={styles.mainHome}>
-            <TitlePage onSelect={setPage} />
+            <TitlePage onSelect={(section) => navigate(section)} />
           </main>
         </>
       ) : (
@@ -106,7 +171,7 @@ export default function App() {
             <button
               type="button"
               className={styles.titleLink}
-              onClick={() => setPage('home')}
+              onClick={() => navigate('home')}
               aria-label="Home"
             >
               <img src="/logo.png" alt="dX" className={styles.headerLogo} />
