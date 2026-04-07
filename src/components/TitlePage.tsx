@@ -32,6 +32,7 @@ export type SectionId =
   | 'solve-ax-b'
   | 'matrix-inverse'
   | 'gradient-descent'
+  | 'euler-identity'
 
 type Lab = { id: SectionId; category: string; title: string; description: string }
 
@@ -62,6 +63,7 @@ const LABS: Lab[] = [
   { id: 'eigenvalues', category: 'Linear algebra', title: 'Eigenvalues & eigenvectors', description: '2×2 matrix; λ, v; unit circle → ellipse and eigenvector arrows' },
   { id: 'solve-ax-b', category: 'Linear algebra', title: 'Solve Ax = b', description: 'Linear system solver via RREF; solution, residual; 2D lines for 2×2' },
   { id: 'matrix-inverse', category: 'Linear algebra', title: 'Matrix inverse', description: 'Left/right/two-sided inverses; injective, surjective, bijective; det and verify' },
+  { id: 'euler-identity', category: 'Linear algebra', title: "Euler's identity", description: 'Explore e^{iθ}=cos(θ)+isin(θ) and the special case e^{iπ}+1=0' },
   { id: 'pendulum', category: 'Physics', title: 'Pendulum', description: 'Phase portrait, time series, and animation' },
   { id: 'heat-equation-1d', category: 'Physics', title: '1D Heat Equation', description: '∂u/∂t = α∂²u/∂x²; graph u(x) over time' },
   { id: 'heat-equation', category: 'Physics', title: '2D Heat Equation', description: '∂u/∂t = α∇²u; finite-difference solver and heat map' },

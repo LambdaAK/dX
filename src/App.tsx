@@ -30,6 +30,7 @@ import { EigenvaluesSection } from '@/components/EigenvaluesSection'
 import { SolveLinearSection } from '@/components/SolveLinearSection'
 import { MatrixInverseSection } from '@/components/MatrixInverseSection'
 import { GradientDescentSection } from '@/components/GradientDescentSection'
+import { EulerIdentitySection } from '@/components/EulerIdentitySection'
 import styles from './App.module.css'
 
 function getInitialTheme(): 'light' | 'dark' {
@@ -68,6 +69,7 @@ export type AppPage =
   | 'solve-ax-b'
   | 'matrix-inverse'
   | 'gradient-descent'
+  | 'euler-identity'
 
 function getInitialPage(): AppPage {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
@@ -108,6 +110,7 @@ function getInitialPage(): AppPage {
       'solve-ax-b',
       'matrix-inverse',
       'gradient-descent',
+      'euler-identity',
     ]
     if (validPages.includes(id)) {
       return id
@@ -216,6 +219,7 @@ export default function App() {
             {page === 'solve-ax-b' && <SolveLinearSection />}
             {page === 'matrix-inverse' && <MatrixInverseSection />}
             {page === 'gradient-descent' && <GradientDescentSection />}
+            {page === 'euler-identity' && <EulerIdentitySection />}
           </main>
         </>
       )}
