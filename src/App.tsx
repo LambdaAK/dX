@@ -30,6 +30,14 @@ import { EigenvaluesSection } from '@/components/EigenvaluesSection'
 import { SolveLinearSection } from '@/components/SolveLinearSection'
 import { MatrixInverseSection } from '@/components/MatrixInverseSection'
 import { GradientDescentSection } from '@/components/GradientDescentSection'
+import {
+  EpsilonDeltaLimitsSection,
+  ExtremeValueTheoremSection,
+  IntermediateValueTheoremSection,
+  MeanValueTheoremSection,
+  SeriesConvergenceSection,
+  TaylorSeriesSection,
+} from '@/components/realAnalysis/RealAnalysisLabSections'
 import styles from './App.module.css'
 
 function getInitialTheme(): 'light' | 'dark' {
@@ -68,6 +76,12 @@ export type AppPage =
   | 'solve-ax-b'
   | 'matrix-inverse'
   | 'gradient-descent'
+  | 'series-convergence'
+  | 'epsilon-delta-limits'
+  | 'mean-value-theorem'
+  | 'intermediate-value-theorem'
+  | 'extreme-value-theorem'
+  | 'taylor-series'
 
 function getInitialPage(): AppPage {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
@@ -108,6 +122,12 @@ function getInitialPage(): AppPage {
       'solve-ax-b',
       'matrix-inverse',
       'gradient-descent',
+      'series-convergence',
+      'epsilon-delta-limits',
+      'mean-value-theorem',
+      'intermediate-value-theorem',
+      'extreme-value-theorem',
+      'taylor-series',
     ]
     if (validPages.includes(id)) {
       return id
@@ -216,6 +236,12 @@ export default function App() {
             {page === 'solve-ax-b' && <SolveLinearSection />}
             {page === 'matrix-inverse' && <MatrixInverseSection />}
             {page === 'gradient-descent' && <GradientDescentSection />}
+            {page === 'series-convergence' && <SeriesConvergenceSection />}
+            {page === 'epsilon-delta-limits' && <EpsilonDeltaLimitsSection />}
+            {page === 'mean-value-theorem' && <MeanValueTheoremSection />}
+            {page === 'intermediate-value-theorem' && <IntermediateValueTheoremSection />}
+            {page === 'extreme-value-theorem' && <ExtremeValueTheoremSection />}
+            {page === 'taylor-series' && <TaylorSeriesSection />}
           </main>
         </>
       )}

@@ -32,6 +32,12 @@ export type SectionId =
   | 'solve-ax-b'
   | 'matrix-inverse'
   | 'gradient-descent'
+  | 'series-convergence'
+  | 'epsilon-delta-limits'
+  | 'mean-value-theorem'
+  | 'intermediate-value-theorem'
+  | 'extreme-value-theorem'
+  | 'taylor-series'
 
 type Lab = { id: SectionId; category: string; title: string; description: string }
 
@@ -58,6 +64,12 @@ const LABS: Lab[] = [
   { id: 'simplex', category: 'Optimization', title: 'Linear Program Solver', description: 'Min cᵀx s.t. Ax≤b; Big-M; 2D feasible polytope' },
   { id: 'qp', category: 'Optimization', title: 'Quadratic Program Solver', description: 'Min ½xᵀQx+cᵀx s.t. Ax≤b; active-set; 2D region' },
   { id: 'gradient-descent', category: 'Optimization', title: 'Gradient descent', description: '1D: f(x) graph with GD path; quadratic, quartic, sinusoidal; step size, momentum' },
+  { id: 'series-convergence', category: 'Real analysis', title: 'Series convergence', description: 'Partial sums, geometric and p-series behavior, and convergence vs divergence' },
+  { id: 'epsilon-delta-limits', category: 'Real analysis', title: 'Limits of functions', description: 'Epsilon-delta neighborhoods and visual checks for local limit behavior' },
+  { id: 'mean-value-theorem', category: 'Real analysis', title: 'Mean value theorem', description: 'Secant slopes, interior tangents, and differentiability on closed intervals' },
+  { id: 'intermediate-value-theorem', category: 'Real analysis', title: 'Intermediate value theorem', description: 'Continuity on [a,b] and guaranteed attainment of every value between f(a) and f(b)' },
+  { id: 'extreme-value-theorem', category: 'Real analysis', title: 'Extreme value theorem', description: 'Continuity on [a,b] and the guaranteed attainment of maxima and minima' },
+  { id: 'taylor-series', category: 'Real analysis', title: 'Taylor series', description: 'Polynomial approximations for e^x, sin x, and cos x with truncation error' },
   { id: 'matrix-factorizations', category: 'Linear algebra', title: 'Matrix factorizations', description: 'LU, QR, Cholesky, SVD; factors and solve Ax = b' },
   { id: 'eigenvalues', category: 'Linear algebra', title: 'Eigenvalues & eigenvectors', description: '2×2 matrix; λ, v; unit circle → ellipse and eigenvector arrows' },
   { id: 'solve-ax-b', category: 'Linear algebra', title: 'Solve Ax = b', description: 'Linear system solver via RREF; solution, residual; 2D lines for 2×2' },
@@ -93,7 +105,7 @@ export function TitlePage({ onSelect }: Props) {
       list.push(lab)
       map.set(lab.category, list)
     }
-    const order = ['Linear algebra', 'Probability', 'Stochastic processes', 'Regression & classification', 'Clustering & dimensionality', 'Reinforcement learning', 'Optimization', 'Physics']
+    const order = ['Real analysis', 'Linear algebra', 'Probability', 'Stochastic processes', 'Regression & classification', 'Clustering & dimensionality', 'Reinforcement learning', 'Optimization', 'Physics']
     return order.filter((c) => map.has(c)).map((c) => ({ category: c, labs: map.get(c)! }))
   }, [query])
 
